@@ -1,0 +1,29 @@
+{
+  "name": "ai-task-escrow-router",
+  "version": "0.1.0",
+  "description": "AI Task Escrow Router - On-chain escrow and settlement protocol for AI-mediated task execution on MultiversX",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/sdk",
+    "packages/indexer"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "npm run clean --workspaces",
+    "contract:build": "cd contracts/router && mxpy contract build",
+    "contract:test": "cd contracts/router && mxpy contract test",
+    "contract:deploy": "cd contracts/router && mxpy contract deploy"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

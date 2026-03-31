@@ -1,0 +1,14 @@
+[package]
+name = "router-escrow"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+multiversx-sc = "0.45.2"
+multiversx-sc-modules = "0.45.2"
+
+[dev-dependencies]
+multiversx-sc-scenario = "0.45.2"
