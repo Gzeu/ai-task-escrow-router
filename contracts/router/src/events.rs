@@ -8,11 +8,11 @@ use crate::RouterEscrow;
 #[event("taskCreated")]
 pub fn task_created_event<M: ManagedTypeApi>(
     self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] creator: &ManagedAddress<M>,
-    #[indexed] payment_amount: &BigUint<M>,
-    #[indexed] payment_token: &EgldOrEsdtTokenIdentifier<M>,
-    metadata_uri: &ManagedBuffer<M>,
+    #[indexed] _task_id: u64,
+    #[indexed] _creator: &ManagedAddress<M>,
+    #[indexed] _payment_amount: &BigUint<M>,
+    #[indexed] _payment_token: &EgldOrEsdtTokenIdentifier<M>,
+    _metadata_uri: &ManagedBuffer<M>,
 ) {
 }
 

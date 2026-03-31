@@ -43,12 +43,13 @@ impl<M: ManagedTypeApi> ViewEndpoints<M> for RouterEscrow<M> {
 
     #[endpoint(getAgentReputation)]
     fn get_agent_reputation(&self, address: ManagedAddress<M>) -> AgentReputation<M> {
-        agent_reputation(address).get()
+        let reputation = agent_reputation(&address).get();
+        reputation
     }
 
     #[endpoint(getX402Ref)]
     fn get_x402_ref(&self, task_id: u64) -> OptionalValue<ManagedBuffer<M>> {
         let task = tasks(task_id).get();
-        OptionalValue::from(task.x402_settlement_ref)
+        OptionalValue::from(task.x402_settlement_ref.clone())
     }
 }
