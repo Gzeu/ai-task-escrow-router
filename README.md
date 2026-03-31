@@ -1,10 +1,10 @@
 # AI Task Escrow Router
 
-[![CI](https://github.com/ai-task-escrow/router/workflows/CI/badge.svg)](https://github.com/ai-task-escrow/router/actions)
+[![CI](https://github.com/Gzeu/ai-task-escrow/router/workflows/CI/badge.svg)](https://github.com/Gzeu/ai-task-escrow/router/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%40ai-task-escrow%2Fsdk.svg)](https://badge.fury.io/js/%40ai-task-escrow%2Fsdk)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/ai-task-escrow/router)
-[![Future Vision](https://img.shields.io/badge/Future%20Vision-2027%2B-blue.svg)](https://github.com/ai-task-escrow/router)
+[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/Gzeu/ai-task-escrow/router)
+[![Future Vision](https://img.shields.io/badge/Future%20Vision-2027%2B-blue.svg)](https://github.com/Gzeu/ai-task-escrow/router)
 
 The world's most comprehensive escrow and settlement protocol for AI-mediated task execution on MultiversX, built from MVP to Future Vision (2027+).
 
