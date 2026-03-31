@@ -10,11 +10,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@multiversx/sdk-dapp": "^3.0.0",
+    "@ai-task-escrow/sdk": "workspace:*",
     "@multiversx/sdk-core": "^13.10.0",
+    "@multiversx/sdk-dapp": "^3.0.0",
     "@multiversx/sdk-network-providers": "^2.6.0",
     "@multiversx/sdk-wallet": "^4.6.0",
-    "@ai-task-escrow/sdk": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "lucide-react": "^0.395.0",
     "next": "^14.0.0",
@@ -27,7 +27,9 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "autoprefixer": "^10.4.0",
+    "clsx": "^2.1.1",
     "postcss": "^8.4.0",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.5.0"
   }

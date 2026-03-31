@@ -45,7 +45,8 @@ interface TaskFilter {
 }
 
 export default function TasksPage() {
-  const { address, isLoggedIn } = useGetAccountInfo();
+  const { address } = useGetAccountInfo();
+  const isLoggedIn = useGetIsLoggedIn();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);

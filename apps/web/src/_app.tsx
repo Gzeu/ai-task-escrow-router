@@ -1,4 +1,4 @@
-import { DappProvider } from '@multiversx/sdk-dapp/UI';
+import { DappProvider } from '@multiversx/sdk-dapp';
 import { EnvironmentsEnum } from '@multiversx/sdk-dapp/types';
 import { TransactionsToastList } from '@multiversx/sdk-dapp/UI/TransactionsToastList';
 import { NotificationModal } from '@multiversx/sdk-dapp/UI/NotificationModal';

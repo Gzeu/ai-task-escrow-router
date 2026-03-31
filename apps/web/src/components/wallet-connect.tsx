@@ -1,25 +1,32 @@
-import { useGetAccountInfo, useGetLoginInfo } from '@multiversx/sdk-dapp/hooks';
+import { useGetAccountInfo, useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks';
 import { useGetNetworkConfig } from '@multiversx/sdk-dapp/hooks';
-import { useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks/auth/useGetIsLoggedIn';
-import { useGetLoginInfo } from '@multiversx/sdk-dapp/hooks/auth/useGetLoginInfo';
-import { useGetAccount } from '@multiversx/sdk-dapp/hooks/account/useGetAccount';
-import { useGetLoginInfo } from '@multiversx/sdk-dapp/hooks/auth/useGetLoginInfo';
-import { useGetAccountInfo } from '@multiversx/sdk-dapp/hooks/account/useGetAccountInfo';
-import { useGetAccount } from '@multiversx/sdk-dapp/hooks/account/useGetAccount';
-import { useGetLoginInfo } from '@multiversx/sdk-dapp/hooks/auth/useGetLoginInfo';
-import { useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks/auth/useGetIsLoggedIn';
-import { useGetNetworkConfig } from '@multiversx/sdk-dapp/hooks';
-import { useGetAccountInfo } from '@multiversx/sdk-dapp/hooks/account/useGetAccountInfo';
-import { useGetLoginInfo } from '@multiversx/sdk-dapp/hooks/auth/useGetLoginInfo';
+import { logout } from '@multiversx/sdk-dapp/utils';
+import { Button } from '@/components/ui/button';
 
 export function WalletConnect() {
-  const { loginMethod } = useGetLoginInfo();
+  const { address } = useGetAccountInfo();
+  const { network } = useGetNetworkConfig();
+  const isLoggedIn = useGetIsLoggedIn();
 
   return (
-    <div className="flex space-x-2">
-      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-        Connect Wallet
-      </button>
+    <div className="flex items-center space-x-4">
+      {isLoggedIn && address ? (
+        <>
+          <div className="text-sm">
+            <span className="text-gray-600">Address:</span>
+            <span className="font-mono text-gray-900">{address.slice(0, 6)}...{address.slice(-4)}</span>
+          </div>
+          <div className="text-sm">
+            <span className="text-gray-600">Network:</span>
+            <span className="text-gray-900">{network.id}</span>
+          </div>
+          <Button onClick={() => logout()}>
+            Disconnect
+          </Button>
+        </>
+      ) : (
+        <Button>Connect Wallet</Button>
+      )}
     </div>
   );
 }
