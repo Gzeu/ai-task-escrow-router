@@ -2,13 +2,17 @@
 name = "router-escrow"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [lib]
-crate-type = ["cdylib"]
+path = "src/lib.rs"
 
-[dependencies]
-multiversx-sc = "0.45.2"
-multiversx-sc-modules = "0.45.2"
+[dependencies.multiversx-sc]
+version = "0.52.0"
 
-[dev-dependencies]
-multiversx-sc-scenario = "0.45.2"
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.52.0"
+
+[[bin]]
+name = "router-escrow-meta"
+path = "meta/main.rs"

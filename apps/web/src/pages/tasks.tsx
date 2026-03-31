@@ -1,299 +1,428 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useRouterEscrow } from '@/contexts/RouterEscrowContext';
+import { useGetAccountInfo, useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks';
+import { useRouter } from 'next/router';
 import { 
   Plus, 
-  Search, 
   Filter, 
+  Search, 
   Clock, 
+  DollarSign, 
   CheckCircle, 
   AlertTriangle,
-  TrendingUp,
-  User,
-  Calendar,
-  DollarSign,
   Eye,
-  Edit,
-  Trash2
+  Calendar,
+  User,
+  ArrowUpDown,
+  ChevronDown,
+  FileText
 } from 'lucide-react';
+import { RouterEscrowClient } from '@ai-task-escrow/sdk';
+import { Layout } from '@/components/layout';
+import { Button } from '@/components/ui/button';
 
-// Local implementations
 interface Task {
-  taskId: string;
+  taskId: bigint;
+  metadataUri: string;
+  state: string;
+  paymentAmount: bigint;
+  createdAt: number;
   creator: string;
   assignedAgent?: string;
-  paymentToken: string;
-  paymentAmount: string;
-  feeBpsSnapshot: number;
-  createdAt: number;
-  acceptedAt?: number;
   deadline?: number;
   reviewTimeout?: number;
-  metadataUri: string;
-  resultUri?: string;
-  state: TaskState;
-  disputeMetadataUri?: string;
-  ap2MandateHash?: string;
-  x402PaymentRef?: string;
-  gasUsed?: string;
-  completionTime?: number;
-  priorityFee?: string;
-  agentReputationSnapshot?: number;
-  paymentNonce?: number;
 }
 
-enum TaskState {
-  Open = "Open",
-  Accepted = "Accepted",
-  Submitted = "Submitted",
-  Approved = "Approved",
-  Cancelled = "Cancelled",
-  Disputed = "Disputed",
-  Refunded = "Refunded",
-  Resolved = "Resolved"
-}
-
-interface TaskFilters {
-  state?: TaskState[];
+interface TaskFilter {
+  state?: string;
   creator?: string;
   assignedAgent?: string;
-  dateRange?: 'today' | 'week' | 'month' | 'all';
   minAmount?: string;
   maxAmount?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export default function TasksPage() {
-  const { client, isConnected } = useRouterEscrow();
+  const { address, isLoggedIn } = useGetAccountInfo();
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<TaskFilters>({});
+  const [filter, setFilter] = useState<TaskFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Mock data
-  const mockTasks: Task[] = [
-    {
-      taskId: "1",
-      creator: "erd1...",
-      assignedAgent: "erd2...",
-      paymentToken: "EGLD",
-      paymentAmount: "1000000000000000000",
-      feeBpsSnapshot: 300,
-      createdAt: Date.now() - 86400000,
-      acceptedAt: Date.now() - 86000000,
-      metadataUri: "ipfs://...",
-      state: TaskState.Accepted
-    },
-    {
-      taskId: "2",
-      creator: "erd3...",
-      paymentToken: "EGLD",
-      paymentAmount: "2000000000000000000",
-      feeBpsSnapshot: 300,
-      createdAt: Date.now() - 172800000,
-      metadataUri: "ipfs://...",
-      state: TaskState.Open
-    }
-  ];
+  const [showFilters, setShowFilters] = useState(false);
+  const [client, setClient] = useState<RouterEscrowClient | null>(null);
 
   useEffect(() => {
-    if (isConnected) {
+    if (isLoggedIn && address) {
+      // Initialize SDK client
+      const sdkClient = new RouterEscrowClient({
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
+        apiTimeout: 6000
+      } as any);
+      setClient(sdkClient);
+      loadTasks(sdkClient);
+    }
+  }, [isLoggedIn, address]);
+
+  useEffect(() => {
+    if (client) {
+      const debouncedSearch = setTimeout(() => {
+        loadTasks(client);
+      }, 500);
+      return () => clearTimeout(debouncedSearch);
+    }
+  }, [searchTerm, filter, client]);
+
+  const loadTasks = async (sdkClient: RouterEscrowClient) => {
+    try {
+      setLoading(true);
+      
+      // Build query params
+      const params = new URLSearchParams();
+      if (filter.state) params.append('state', filter.state);
+      if (filter.creator) params.append('creator', filter.creator);
+      if (filter.assignedAgent) params.append('assignedAgent', filter.assignedAgent);
+      if (filter.minAmount) params.append('minAmount', filter.minAmount);
+      if (filter.maxAmount) params.append('maxAmount', filter.maxAmount);
+      if (searchTerm) params.append('search', searchTerm);
+      
+      params.append('sortBy', filter.sortBy || 'createdAt');
+      params.append('sortOrder', filter.sortOrder || 'desc');
+      params.append('limit', '20');
+
+      // Get tasks from indexer
+      const response = await fetch(`${process.env.NEXT_PUBLIC_INDEXER_URL}/tasks?${params.toString()}`);
+      const data = await response.json();
+      
+      const mappedTasks: Task[] = data.data.map((task: any) => ({
+        taskId: BigInt(task.taskId),
+        metadataUri: task.metadataUri,
+        state: task.state,
+        paymentAmount: BigInt(task.paymentAmount),
+        createdAt: task.createdAt,
+        creator: task.creator,
+        assignedAgent: task.assignedAgent,
+        deadline: task.deadline,
+        reviewTimeout: task.reviewTimeout
+      }));
+
+      setTasks(mappedTasks);
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+      
+      // Fallback to mock data
+      const mockTasks: Task[] = [
+        {
+          taskId: BigInt(1247),
+          metadataUri: 'AI Content Generation',
+          state: 'Open',
+          paymentAmount: BigInt('500000000000000000'),
+          createdAt: Date.now() - 3600000,
+          creator: 'erd1creator...',
+          assignedAgent: undefined,
+          deadline: Date.now() + 86400000, // 24 hours
+          reviewTimeout: Date.now() + 172800000 // 48 hours
+        },
+        {
+          taskId: BigInt(1246),
+          metadataUri: 'Data Analysis Task',
+          state: 'Accepted',
+          paymentAmount: BigInt('1000000000000000000'),
+          createdAt: Date.now() - 7200000,
+          creator: 'erd1creator...',
+          assignedAgent: 'erd1agent...',
+          deadline: Date.now() + 86400000,
+          reviewTimeout: Date.now() + 172800000
+        },
+        {
+          taskId: BigInt(1245),
+          metadataUri: 'Image Processing',
+          state: 'Approved',
+          paymentAmount: BigInt('2000000000000000000'),
+          createdAt: Date.now() - 10800000,
+          creator: 'erd1creator...',
+          assignedAgent: 'erd1agent...',
+          deadline: Date.now() + 86400000,
+          reviewTimeout: Date.now() + 172800000
+        }
+      ];
+      
       setTasks(mockTasks);
+    } finally {
       setLoading(false);
     }
-  }, [isConnected]);
+  };
 
-  const formatAmount = (amount: string): string => {
-    const num = parseFloat(amount) / 1e18;
+  const formatAmount = (amount: bigint): string => {
+    const num = Number(amount) / 1e18;
     return num.toFixed(4) + ' EGLD';
   };
 
   const formatDate = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleDateString();
+    return new Date(timestamp * 1000).toLocaleString();
   };
 
-  const getStatusColor = (state: TaskState): string => {
+  const getStatusColor = (state: string): string => {
     switch (state) {
-      case TaskState.Open: return 'text-blue-600 bg-blue-50';
-      case TaskState.Accepted: return 'text-yellow-600 bg-yellow-50';
-      case TaskState.Submitted: return 'text-purple-600 bg-purple-50';
-      case TaskState.Approved: return 'text-green-600 bg-green-50';
-      case TaskState.Cancelled: return 'text-gray-600 bg-gray-50';
-      case TaskState.Disputed: return 'text-red-600 bg-red-50';
-      case TaskState.Resolved: return 'text-indigo-600 bg-indigo-50';
-      case TaskState.Refunded: return 'text-orange-600 bg-orange-50';
+      case 'Open': return 'text-blue-600 bg-blue-50';
+      case 'Accepted': return 'text-yellow-600 bg-yellow-50';
+      case 'Submitted': return 'text-purple-600 bg-purple-50';
+      case 'Approved': case 'Completed': return 'text-green-600 bg-green-50';
+      case 'Cancelled': return 'text-gray-600 bg-gray-50';
+      case 'Disputed': return 'text-red-600 bg-red-50';
+      case 'Resolved': return 'text-indigo-600 bg-indigo-50';
+      case 'Refunded': return 'text-orange-600 bg-orange-50';
       default: return 'text-gray-600 bg-gray-50';
     }
   };
 
-  const getStatusIcon = (state: TaskState) => {
+  const getStatusIcon = (state: string) => {
     switch (state) {
-      case TaskState.Open: return <Clock className="h-4 w-4" />;
-      case TaskState.Accepted: return <User className="h-4 w-4" />;
-      case TaskState.Submitted: return <AlertTriangle className="h-4 w-4" />;
-      case TaskState.Approved: return <CheckCircle className="h-4 w-4" />;
-      case TaskState.Cancelled: return <Trash2 className="h-4 w-4" />;
-      case TaskState.Disputed: return <AlertTriangle className="h-4 w-4" />;
-      case TaskState.Resolved: return <CheckCircle className="h-4 w-4" />;
-      case TaskState.Refunded: return <DollarSign className="h-4 w-4" />;
+      case 'Open': return <Clock className="h-4 w-4" />;
+      case 'Accepted': return <User className="h-4 w-4" />;
+      case 'Submitted': return <AlertTriangle className="h-4 w-4" />;
+      case 'Approved': case 'Completed': return <CheckCircle className="h-4 w-4" />;
+      case 'Cancelled': return <AlertTriangle className="h-4 w-4" />;
+      case 'Disputed': return <AlertTriangle className="h-4 w-4" />;
+      case 'Resolved': return <CheckCircle className="h-4 w-4" />;
+      case 'Refunded': return <DollarSign className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
 
-  if (!isConnected) {
+  const handleFilterChange = (key: keyof TaskFilter, value: any) => {
+    setFilter(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilter({});
+    setSearchTerm('');
+  };
+
+  const handleAcceptTask = async (taskId: bigint) => {
+    if (!client || !address) return;
+    
+    try {
+      console.log('Task accepted (mock):', taskId);
+      
+      // In real implementation, this would open wallet for signing
+      // Refresh tasks after successful transaction
+      setTimeout(() => loadTasks(client), 2000);
+    } catch (error) {
+      console.error('Failed to accept task:', error);
+    }
+  };
+
+  const handleViewDetails = (taskId: bigint) => {
+    router.push(`/tasks/${taskId.toString()}`);
+  };
+
+  if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Wallet</h2>
-          <p className="text-gray-600">Please connect your wallet to view tasks.</p>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Your Wallet</h2>
+            <p className="text-gray-600 mb-6">Please connect your wallet to view available tasks.</p>
+            <Button onClick={() => router.push('/')}>
+              Connect Wallet
+            </Button>
+          </div>
         </div>
-      </div>
+      </Layout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <>
+    <Layout>
       <Head>
         <title>Tasks - AI Task Escrow Router</title>
-        <meta name="description" content="Manage and monitor AI tasks" />
+        <meta name="description" content="Browse and manage AI tasks" />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <div className="container-wide py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-              <p className="text-gray-600 mt-2">Manage and monitor AI tasks</p>
+              <p className="text-gray-600 mt-2">Browse and manage available AI tasks.</p>
             </div>
-            
-            <Link href="/tasks/create" className="btn btn-primary flex items-center">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Link>
+            <div className="flex space-x-4">
+              <Button onClick={() => setShowFilters(!showFilters)} className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+              <Link href="/tasks/create">
+                <Button className="flex items-center">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Task
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Search and Filters */}
-          <div className="card mb-6">
-            <div className="card-body">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      placeholder="Search tasks..."
-                      className="input pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <select 
-                    className="input"
-                    value={filters.state?.[0] || ''}
-                    onChange={(e) => setFilters({ 
-                      ...filters, 
-                      state: e.target.value ? [e.target.value as TaskState] : undefined 
-                    })}
-                  >
-                    <option value="">All States</option>
-                    <option value={TaskState.Open}>Open</option>
-                    <option value={TaskState.Accepted}>Accepted</option>
-                    <option value={TaskState.Submitted}>Submitted</option>
-                    <option value={TaskState.Approved}>Approved</option>
-                    <option value={TaskState.Cancelled}>Cancelled</option>
-                    <option value={TaskState.Disputed}>Disputed</option>
-                    <option value={TaskState.Resolved}>Resolved</option>
-                    <option value={TaskState.Refunded}>Refunded</option>
-                  </select>
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Search */}
+              <div className="lg:col-span-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
               </div>
+
+              {/* State Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  value={filter.state || ''}
+                  onChange={(e) => handleFilterChange('state', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">All States</option>
+                  <option value="Open">Open</option>
+                  <option value="Accepted">Accepted</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Disputed">Disputed</option>
+                </select>
+              </div>
+
+              {/* Sort */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                <select
+                  value={filter.sortBy || 'createdAt'}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="createdAt">Created Date</option>
+                  <option value="paymentAmount">Amount</option>
+                  <option value="deadline">Deadline</option>
+                </select>
+              </div>
             </div>
+
+            {/* Active Filters */}
+            {(filter.state || searchTerm) && (
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm text-gray-600">
+                  Active filters: {filter.state && `Status: ${filter.state}`} {searchTerm && `Search: "${searchTerm}"`}
+                </span>
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Tasks Table */}
-          <div className="card">
-            <div className="card-body">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4">Task ID</th>
-                        <th className="text-left py-3 px-4">Creator</th>
-                        <th className="text-left py-3 px-4">Agent</th>
-                        <th className="text-left py-3 px-4">Amount</th>
-                        <th className="text-left py-3 px-4">State</th>
-                        <th className="text-left py-3 px-4">Created</th>
-                        <th className="text-left py-3 px-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tasks.map((task) => (
-                        <tr key={task.taskId} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <span className="font-medium">#{task.taskId}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-sm text-gray-600">
-                              {task.creator.slice(0, 10)}...
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            {task.assignedAgent ? (
-                              <span className="text-sm text-gray-600">
-                                {task.assignedAgent.slice(0, 10)}...
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400">Unassigned</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-medium">{formatAmount(task.paymentAmount)}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.state)}`}>
-                              {getStatusIcon(task.state)}
-                              <span className="ml-1">{task.state}</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-sm text-gray-600">
-                              {formatDate(task.createdAt)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-2">
-                              <Link href={`/tasks/${task.taskId}`} className="text-blue-600 hover:text-blue-800">
-                                <Eye className="h-4 w-4" />
-                              </Link>
-                              <button className="text-gray-600 hover:text-gray-800">
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  {tasks.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-gray-600">No tasks found</p>
+          {/* Tasks Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tasks.map((task) => (
+              <div key={task.taskId.toString()} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{task.metadataUri}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-1" />
+                          <span>{task.creator.slice(0, 6)}...{task.creator.slice(-4)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span>{formatDate(task.createdAt)}</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(task.state)}`}>
+                        {task.state}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Payment</span>
+                      <span className="font-semibold text-gray-900">{formatAmount(task.paymentAmount)}</span>
+                    </div>
+
+                    {task.deadline && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Deadline</span>
+                        <span className="text-sm text-gray-900">{formatDate(task.deadline)}</span>
+                      </div>
+                    )}
+
+                    {task.assignedAgent && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Assigned Agent</span>
+                        <span className="text-sm text-gray-900">{task.assignedAgent.slice(0, 6)}...{task.assignedAgent.slice(-4)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-4 border-t border-gray-200">
+                    {task.state === 'Open' && (
+                      <Button 
+                        onClick={() => handleAcceptTask(task.taskId)}
+                        className="flex-1"
+                      >
+                        Accept Task
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewDetails(task.taskId)}
+                      className="flex items-center"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
+
+          {/* Empty State */}
+          {tasks.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
+              <p className="text-gray-600">
+                {searchTerm || filter.state 
+                  ? 'Try adjusting your search or filters.' 
+                  : 'No tasks are currently available. Check back later!'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
-    </>
+    </Layout>
   );
 }

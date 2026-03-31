@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { useRouterEscrow } from '@/contexts/RouterEscrowContext';
+import { useGetAccountInfo, useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks';
+import { useRouter } from 'next/router';
 import { 
   User, 
   Shield, 
@@ -21,6 +22,9 @@ import {
   Copy,
   ExternalLink
 } from 'lucide-react';
+import { RouterEscrowClient } from '@ai-task-escrow/sdk';
+import { Layout } from '@/components/layout';
+import { Button } from '@/components/ui/button';
 
 interface UserProfile {
   address: string;
@@ -50,17 +54,20 @@ interface TaskHistory {
 }
 
 export default function ProfilePage() {
-  const { isConnected, address } = useRouterEscrow();
+  const { address } = useGetAccountInfo();
+  const isLoggedIn = useGetIsLoggedIn();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [taskHistory, setTaskHistory] = useState<TaskHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [client, setClient] = useState<RouterEscrowClient | null>(null);
 
   useEffect(() => {
-    if (isConnected && address) {
+    if (isLoggedIn && address) {
       loadProfileData();
     }
-  }, [isConnected, address]);
+  }, [isLoggedIn, address]);
 
   const loadProfileData = async () => {
     try {
@@ -163,22 +170,29 @@ export default function ProfilePage() {
     ));
   };
 
-  if (!isConnected) {
+  if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Wallet</h2>
-          <p className="text-gray-600">Please connect your wallet to view your profile.</p>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Wallet</h2>
+            <p className="text-gray-600 mb-6">Please connect your wallet to view your profile.</p>
+            <Button onClick={() => router.push('/')}>
+              Connect Wallet
+            </Button>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
     );
   }
 

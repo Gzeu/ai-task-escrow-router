@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  contract-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: router-contract-builder
+    volumes:
+      - ./output:/contract/output
+    working_dir: /contract
+    environment:
+      - CARGO_TERM_COLOR=always

@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { EventIndexer } from './event-indexer';
 import { DatabaseService } from './database';
 import { Logger } from './logger';
+import { ApiServer } from './api';
 import { IndexerConfig } from './types';
 
 // Load environment variables
@@ -41,6 +42,10 @@ async function main() {
     
     // Initialize and start event indexer
     const indexer = new EventIndexer(indexerConfig, database, logger);
+    
+    // Initialize and start API server
+    const apiServer = new ApiServer(database, logger);
+    await apiServer.start();
     
     // Graceful shutdown handlers
     process.on('SIGINT', async () => {
