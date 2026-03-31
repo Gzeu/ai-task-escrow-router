@@ -1,5 +1,5 @@
 import { useGetAccountInfo, useGetNetworkConfig } from '@multiversx/sdk-dapp/hooks';
-import { useGetIsLoggedIn } from '@multiversx/sdk-dapp/hooks';
+import { useGetLoginInfo } from '@multiversx/sdk-dapp/hooks/auth/useGetLoginInfo';
 import { logout } from '@multiversx/sdk-dapp/utils';
 import { Button } from '@/components/ui/button';
 import { WalletConnect } from '@/components/wallet-connect';

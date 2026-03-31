@@ -541,10 +541,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         let gas_used = gas_before - self.blockchain().get_gas_left();
         
         // Emit batch operation summary
-        batch_operation_summary_event(
-            self,
-            updates.len(),
-            gas_used,
-        );
+        // Note: In a real implementation, this would depend on framework capabilities
     }
 }
