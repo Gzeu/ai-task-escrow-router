@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouterEscrow } from '@/contexts/RouterEscrowContext';
 import { 
   Plus, 
@@ -165,10 +166,10 @@ export default function TasksPage() {
               <p className="text-gray-600 mt-2">Manage and monitor AI tasks</p>
             </div>
             
-            <button className="btn btn-primary flex items-center">
+            <Link href="/tasks/create" className="btn btn-primary flex items-center">
               <Plus className="h-4 w-4 mr-2" />
               Create Task
-            </button>
+            </Link>
           </div>
 
           {/* Search and Filters */}
@@ -269,9 +270,9 @@ export default function TasksPage() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex gap-2">
-                              <button className="text-blue-600 hover:text-blue-800">
+                              <Link href={`/tasks/${task.taskId}`} className="text-blue-600 hover:text-blue-800">
                                 <Eye className="h-4 w-4" />
-                              </button>
+                              </Link>
                               <button className="text-gray-600 hover:text-gray-800">
                                 <Edit className="h-4 w-4" />
                               </button>

@@ -89,38 +89,6 @@ export default function HomePage() {
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="container-wide py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-8 w-8 text-primary-600" />
-                  <h1 className="text-2xl font-bold text-gray-900">AI Task Escrow Router</h1>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                {isConnected ? (
-                  <div className="flex items-center space-x-4">
-                    <div className="text-sm text-gray-600">
-                      Connected: <span className="font-mono">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-                    </div>
-                    <Link href="/dashboard" className="btn btn-primary">
-                      Dashboard
-                    </Link>
-                  </div>
-                ) : (
-                  <button onClick={connectWallet} className="btn btn-primary">
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Connect Wallet
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary-50 to-indigo-100 py-20">
           <div className="container-wide">
@@ -137,7 +105,6 @@ export default function HomePage() {
                   <>
                     <Link href="/tasks/create" className="btn btn-primary text-lg px-8 py-3">
                       Create Task
-                      <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                     <Link href="/tasks" className="btn btn-secondary text-lg px-8 py-3">
                       Browse Tasks
@@ -146,7 +113,6 @@ export default function HomePage() {
                 ) : (
                   <button onClick={connectWallet} className="btn btn-primary text-lg px-8 py-3">
                     Get Started
-                    <ArrowRight className="ml-2 h-5 w-5" />
                   </button>
                 )}
               </div>
@@ -316,18 +282,15 @@ export default function HomePage() {
                     <div>
                       <p className="text-sm text-gray-600">Status</p>
                       <p className="text-lg font-semibold">
-                        <span className={`badge ${config.paused ? 'badge-error' : 'badge-success'}`}>
-                          {config.paused ? 'Paused' : 'Active'}
+                        <span className={`badge ${config.isPaused ? 'badge-error' : 'badge-success'}`}>
+                          {config.isPaused ? 'Paused' : 'Active'}
                         </span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Resolver</p>
+                      <p className="text-sm text-gray-600">Admin</p>
                       <p className="text-sm font-mono text-gray-900">
-                        {config.resolver 
-                          ? `${config.resolver.slice(0, 10)}...${config.resolver.slice(-8)}`
-                          : 'Not set'
-                        }
+                        Not Available
                       </p>
                     </div>
                   </div>

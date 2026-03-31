@@ -1,0 +1,128 @@
+name: Contract Check
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'contracts/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'contracts/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: '1.70.0'
+
+jobs:
+  contract-validation:
+    name: Smart Contract Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        components: rustfmt, clippy
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          contracts/router/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Install MultiversX CLI
+      run: |
+        curl -L https://github.com/multiversx/mx-sdk-rs/releases/latest/download/mx-linux-x64.tar.gz | tar xz
+        sudo mv mx /usr/local/bin/
+    
+    - name: Check code formatting
+      run: |
+        cd contracts/router
+        cargo fmt -- --check
+    
+    - name: Run Clippy lints
+      run: |
+        cd contracts/router
+        cargo clippy -- -D warnings
+    
+    - name: Build contract
+      run: |
+        cd contracts/router
+        cargo build --release --target wasm32-unknown-unknown
+    
+    - name: Build with mxpy
+      run: |
+        cd contracts/router
+        mxpy contract build
+    
+    - name: Run unit tests
+      run: |
+        cd contracts/router
+        cargo test
+    
+    - name: Run contract tests
+      run: |
+        cd contracts/router
+        mxpy contract test
+    
+    - name: Check contract size
+      run: |
+        cd contracts/router
+        CONTRACT_SIZE=$(wc -c < output/router.wasm)
+        echo "Contract size: $CONTRACT_SIZE bytes"
+        
+        # Warn if contract is too large (> 50KB)
+        if [ $CONTRACT_SIZE -gt 51200 ]; then
+          echo "::warning::Contract size ($CONTRACT_SIZE bytes) exceeds recommended limit of 50KB"
+        fi
+    
+    - name: Validate contract metadata
+      run: |
+        cd contracts/router
+        if [ ! -f "output/router.abi.json" ]; then
+          echo "::error::ABI file not found"
+          exit 1
+        fi
+        
+        # Validate ABI structure
+        if ! jq empty output/router.abi.json 2>/dev/null; then
+          echo "::error::Invalid ABI JSON format"
+          exit 1
+        fi
+    
+    - name: Security audit
+      run: |
+        cd contracts/router
+        cargo install cargo-audit
+        cargo audit
+    
+    - name: Check for common vulnerabilities
+      run: |
+        cd contracts/router
+        
+        # Check for potential issues in Rust code
+        echo "Checking for common security patterns..."
+        
+        # Check for hardcoded addresses (basic pattern)
+        if grep -r "erd1[a-zA-Z0-9]" src/ --include="*.rs"; then
+          echo "::warning::Potential hardcoded address found"
+        fi
+        
+        # Check for panic! usage (should use custom errors instead)
+        if grep -r "panic!" src/ --include="*.rs"; then
+          echo "::warning::panic! found - consider using custom errors"
+        fi
+        
+        # Check for unwrap() usage (should handle errors properly)
+        if grep -r "\.unwrap()" src/ --include="*.rs"; then
+          echo "::warning::unwrap() found - consider proper error handling"
+        fi
