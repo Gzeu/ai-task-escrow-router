@@ -11,10 +11,9 @@
   },
   "dependencies": {
     "@ai-task-escrow/sdk": "file:../packages/sdk",
-    "@multiversx/sdk-core": "^13.10.0",
-    "@multiversx/sdk-dapp": "^3.0.0",
-    "@multiversx/sdk-network-providers": "^2.6.0",
-    "@multiversx/sdk-wallet": "^4.6.0",
+    "@multiversx/sdk-core": "^15.0.0",
+    "@multiversx/sdk-dapp": "^3.5.0",
+    "@multiversx/sdk-wallet-connect-provider": "^6.1.5",
     "@tanstack/react-query": "^5.0.0",
     "lucide-react": "^0.395.0",
     "next": "^14.0.0",

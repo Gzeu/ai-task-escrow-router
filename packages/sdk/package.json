@@ -18,7 +18,7 @@
     "test": "vitest run --globals"
   },
   "dependencies": {
-    "@multiversx/sdk-core": "^13.10.0",
+    "@multiversx/sdk-core": "^15.0.0",
     "@multiversx/sdk-network-providers": "^2.6.0",
     "@multiversx/sdk-wallet": "^4.6.0"
   },
