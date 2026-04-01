@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-task-escrow/sdk": "workspace:*",
+    "@ai-task-escrow/sdk": "file:../packages/sdk",
     "@multiversx/sdk-core": "^13.10.0",
     "@multiversx/sdk-dapp": "^3.0.0",
     "@multiversx/sdk-network-providers": "^2.6.0",

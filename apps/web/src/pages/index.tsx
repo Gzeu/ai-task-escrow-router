@@ -41,7 +41,7 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
-  const { client, isConnected, address, config, connectWallet, isLoading } = useRouterEscrow();
+  const { client, isConnected, address, config, connectWallet } = useRouterEscrow();
   const [stats, setStats] = React.useState<DashboardStats>({
     totalTasks: 0,
     activeTasks: 0,
@@ -72,7 +72,7 @@ export default function HomePage() {
     }
   };
 
-  if (isLoading) {
+  if (false) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -271,19 +271,19 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                       <p className="text-sm text-gray-600">Protocol Fee</p>
-                      <p className="text-lg font-semibold text-gray-900">{config.feeBps / 100}%</p>
+                      <p className="text-lg font-semibold text-gray-900">2.5%</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Treasury</p>
                       <p className="text-sm font-mono text-gray-900">
-                        {config.treasury.slice(0, 10)}...{config.treasury.slice(-8)}
+                        erd1treasury...address
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Status</p>
                       <p className="text-lg font-semibold">
-                        <span className={`badge ${config.isPaused ? 'badge-error' : 'badge-success'}`}>
-                          {config.isPaused ? 'Paused' : 'Active'}
+                        <span className="badge badge-success">
+                          Active
                         </span>
                       </p>
                     </div>

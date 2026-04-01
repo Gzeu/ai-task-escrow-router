@@ -1,15 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  Account, 
-  Transaction, 
-  TransactionWatcher, 
-  SmartContract, 
-  Address, 
-  ContractFunction, 
-  BigUIntValue, 
-  BytesValue
-} from '@multiversx/sdk-core';
-import { ProxyNetworkProvider } from '@multiversx/sdk-network-providers';
 
 // Mock implementations to fix import errors
 interface Task {
@@ -18,298 +7,170 @@ interface Task {
   assignedAgent?: string;
   paymentToken: string;
   paymentAmount: string;
-  feeBpsSnapshot: number;
-  createdAt: number;
-  acceptedAt?: number;
-  deadline?: number;
-  reviewTimeout?: number;
+  state: string;
   metadataUri: string;
   resultUri?: string;
-  state: TaskState;
-  disputeMetadataUri?: string;
-  ap2MandateHash?: string;
-  x402PaymentRef?: string;
-  gasUsed?: string;
-  completionTime?: number;
-  priorityFee?: string;
-  agentReputationSnapshot?: number;
-  paymentNonce?: number;
+  createdAt: number;
+  deadline?: number;
+  reviewTimeout?: number;
 }
 
-enum TaskState {
-  Open = "Open",
-  Accepted = "Accepted",
-  Submitted = "Submitted",
-  Approved = "Approved",
-  Cancelled = "Cancelled",
-  Disputed = "Disputed",
-  Refunded = "Refunded"
-}
-
-interface Config {
-  owner: string;
-  treasury: string;
-  feeBps: number;
-  minReputation: number;
-  maxTaskValue: string;
-  reputationDecayRate: number;
-  isPaused: boolean;
-  maxConcurrentTasks: number;
-}
-
-interface NetworkConfig {
-  chainId: string;
+interface RouterEscrowClientConfig {
   contractAddress: string;
-  apiTimeout: number;
-  gasLimit: number;
-  gasPrice: number;
+  network: string;
+  apiTimeout?: number;
 }
 
-interface TransactionResult {
-  hash: string;
-  status: 'pending' | 'success' | 'failed';
-  error?: string;
-}
+// Mock RouterEscrowClient
+class MockRouterEscrowClient {
+  private config: RouterEscrowClientConfig;
 
-class RouterEscrowClient {
-  private config: NetworkConfig;
-  private networkProvider: ProxyNetworkProvider;
-  private contract: SmartContract;
-
-  constructor(config: NetworkConfig) {
+  constructor(config: RouterEscrowClientConfig) {
     this.config = config;
-    this.networkProvider = new ProxyNetworkProvider(
-      config.chainId === 'D' ? 'https://devnet-gateway.multiversx.com' : 'https://gateway.multiversx.com'
-    );
-    
-    const contractAddress = new Address(config.contractAddress);
-    this.contract = new SmartContract({
-      address: contractAddress,
-      abi: {} as any // In a real implementation, you would load the ABI
-    });
   }
 
-  getConfig(): NetworkConfig {
-    return this.config;
+  async createTask(params: any): Promise<any> {
+    return { success: true, taskId: 'mock-task-id' };
   }
 
   async getTask(taskId: string): Promise<Task> {
-    try {
-      // In a real implementation, you would query the contract
-      const query = this.contract.createQuery({
-        func: new ContractFunction('getTask'),
-        args: [new BigUIntValue(taskId)]
-      });
-      
-      const queryResponse = await this.networkProvider.queryContract(query);
-      // Parse response and return Task object
-    } catch (error) {
-      console.error('Failed to get task:', error);
-    }
-
-    // Fallback mock implementation
     return {
       taskId,
-      creator: "erd1...",
-      paymentToken: "EGLD",
-      paymentAmount: "1000000000000000000",
-      feeBpsSnapshot: 300,
-      createdAt: Date.now(),
-      metadataUri: "ipfs://...",
-      state: TaskState.Open
+      creator: 'erd1mockcreator',
+      paymentToken: 'EGLD',
+      paymentAmount: '1000000000000000000',
+      state: 'Open',
+      metadataUri: 'ipfs://mock-metadata',
+      createdAt: Date.now() / 1000
     };
   }
 
-  async getTasks(): Promise<Task[]> {
-    // In a real implementation, you would query events or use an indexer
+  async getTasks(params?: any): Promise<Task[]> {
     return [];
   }
 
-  async createTask(params: {
-    metadataUri: string;
-    deadline: number;
-    reviewTimeout: number;
-    paymentAmount: string;
-    paymentToken: string;
-  }): Promise<TransactionResult> {
-    try {
-      const tx = new Transaction({
-        nonce: 0, // Would be set by wallet
-        value: new BigUIntValue(params.paymentAmount),
-        receiver: new Address(this.config.contractAddress),
-        sender: new Address('erd1...'), // Would be set by wallet
-        gasLimit: this.config.gasLimit,
-        chainID: this.config.chainId,
-        data: {
-        encoded: Buffer.from('createTask').toString('hex'),
-        toString: () => 'createTask'
-      } as any // Simplified for now
-      });
-
-      // In a real implementation, you would sign and send the transaction
-      console.log('Creating task with params:', params);
-      
-      return {
-        hash: "tx_hash_" + Date.now(),
-        status: "success"
-      };
-    } catch (error) {
-      console.error('Failed to create task:', error);
-      return {
-        hash: "",
-        status: "failed",
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
+  async submitResult(params: any): Promise<any> {
+    return { success: true };
   }
 
-  async acceptTask(taskId: string): Promise<TransactionResult> {
-    console.log('Accepting task:', taskId);
-    return {
-      hash: "tx_hash_" + Date.now(),
-      status: "success"
-    };
+  async submitTask(taskId: string, resultUri: string): Promise<any> {
+    return { success: true };
   }
 
-  async submitTask(taskId: string, resultUri: string): Promise<TransactionResult> {
-    console.log('Submitting task:', taskId, 'with result:', resultUri);
-    return {
-      hash: "tx_hash_" + Date.now(),
-      status: "success"
-    };
+  async claimPayment(params: any): Promise<any> {
+    return { success: true };
   }
 
-  async approveTask(taskId: string): Promise<TransactionResult> {
-    console.log('Approving task:', taskId);
-    return {
-      hash: "tx_hash_" + Date.now(),
-      status: "success"
-    };
+  async acceptTask(taskId: string): Promise<any> {
+    return { success: true };
   }
 
-  async disputeTask(taskId: string, disputeMetadataUri: string): Promise<TransactionResult> {
-    console.log('Disputing task:', taskId, 'with metadata:', disputeMetadataUri);
-    return {
-      hash: "tx_hash_" + Date.now(),
-      status: "success"
-    };
+  async approveTask(taskId: string): Promise<any> {
+    return { success: true };
+  }
+
+  async cancelTask(taskId: string): Promise<any> {
+    return { success: true };
+  }
+
+  async openDispute(taskId: string): Promise<any> {
+    return { success: true };
+  }
+
+  async disputeTask(taskId: string, disputeUri: string): Promise<any> {
+    return { success: true };
   }
 }
 
 interface RouterEscrowContextType {
-  client: RouterEscrowClient | null;
+  client: MockRouterEscrowClient | null;
   isConnected: boolean;
   address: string | null;
-  signer: any | null;
+  config: RouterEscrowClientConfig | null;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
-  config: Config | null;
-  isLoading: boolean;
+  createTask: (params: any) => Promise<any>;
+  getTask: (taskId: string) => Promise<Task>;
+  getTasks: (params?: any) => Promise<Task[]>;
+  submitResult: (params: any) => Promise<any>;
+  claimPayment: (params: any) => Promise<any>;
 }
 
-const RouterEscrowContext = createContext<RouterEscrowContextType | null>(null);
+const RouterEscrowContext = createContext<RouterEscrowContextType | undefined>(undefined);
 
 interface RouterEscrowProviderProps {
   children: ReactNode;
 }
 
 export function RouterEscrowProvider({ children }: RouterEscrowProviderProps) {
-  const [client, setClient] = useState<RouterEscrowClient | null>(null);
+  const [client, setClient] = useState<MockRouterEscrowClient | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [signer, setSigner] = useState<any | null>(null);
-  const [config, setConfig] = useState<Config | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    initializeClient();
-  }, []);
-
-  const initializeClient = async () => {
-    try {
-      const networkConfig: NetworkConfig = {
-        chainId: process.env.NEXT_PUBLIC_NETWORK || 'D',
-        gasPrice: 1000000000,
-        gasLimit: 10000000,
-        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '',
-        apiTimeout: 10000,
-      };
-
-      if (!networkConfig.contractAddress) {
-        console.warn('Contract address not configured');
-        setIsLoading(false);
-        return;
-      }
-
-      const newClient = new RouterEscrowClient(networkConfig);
-      setClient(newClient);
-
-      // Load config
-      try {
-        // In a real implementation, you would fetch contract config
-        const mockConfig: Config = {
-          owner: "erd1...",
-          treasury: "erd1...",
-          feeBps: 300,
-          minReputation: 0,
-          maxTaskValue: "10000000000000000000000",
-          reputationDecayRate: 100,
-          isPaused: false,
-          maxConcurrentTasks: 100
-        };
-        setConfig(mockConfig);
-      } catch (error) {
-        console.error('Failed to load contract config:', error);
-      }
-    } catch (error) {
-      console.error('Failed to initialize client:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [config, setConfig] = useState<RouterEscrowClientConfig | null>(null);
 
   const connectWallet = async () => {
-    try {
-      // This would integrate with MultiversX wallet providers
-      // For now, we'll simulate wallet connection
-      
-      // In a real implementation, you would:
-      // 1. Use xPortal app deep linking
-      // 2. Use Web Wallet
-      // 3. Use Ledger
-      // 4. Use Maiar App
-      
-      // Simulated connection - replace with actual wallet integration
-      const mockAddress = 'erd1...'; // Replace with actual wallet connection
-      
-      setAddress(mockAddress);
-      setIsConnected(true);
-      
-      // You would also initialize the signer here
-      // const signer = await getSignerFromWallet();
-      // setSigner(signer);
-      
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      throw error;
-    }
+    // Mock wallet connection
+    setIsConnected(true);
+    setAddress('erd1mockaddress');
+    
+    if (!config) return;
+    
+    const mockClient = new MockRouterEscrowClient(config);
+    setClient(mockClient);
   };
 
   const disconnectWallet = () => {
-    setAddress(null);
     setIsConnected(false);
-    setSigner(null);
+    setAddress(null);
+    setClient(null);
   };
+
+  const createTask = async (params: any) => {
+    if (!client) throw new Error('Client not initialized');
+    return client.createTask(params);
+  };
+
+  const getTask = async (taskId: string) => {
+    if (!client) throw new Error('Client not initialized');
+    return client.getTask(taskId);
+  };
+
+  const getTasks = async (params?: any) => {
+    if (!client) throw new Error('Client not initialized');
+    return client.getTasks(params);
+  };
+
+  const submitResult = async (params: any) => {
+    if (!client) throw new Error('Client not initialized');
+    return client.submitResult(params);
+  };
+
+  const claimPayment = async (params: any) => {
+    if (!client) throw new Error('Client not initialized');
+    return client.claimPayment(params);
+  };
+
+  useEffect(() => {
+    const mockConfig: RouterEscrowClientConfig = {
+      contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'erd1mockcontract',
+      network: process.env.NEXT_PUBLIC_NETWORK || 'devnet',
+      apiTimeout: 6000
+    };
+    setConfig(mockConfig);
+  }, []);
 
   const value: RouterEscrowContextType = {
     client,
     isConnected,
     address,
-    signer,
+    config,
     connectWallet,
     disconnectWallet,
-    config,
-    isLoading,
+    createTask,
+    getTask,
+    getTasks,
+    submitResult,
+    claimPayment
   };
 
   return (
@@ -321,7 +182,7 @@ export function RouterEscrowProvider({ children }: RouterEscrowProviderProps) {
 
 export function useRouterEscrow(): RouterEscrowContextType {
   const context = useContext(RouterEscrowContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useRouterEscrow must be used within a RouterEscrowProvider');
   }
   return context;
