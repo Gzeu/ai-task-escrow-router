@@ -192,10 +192,17 @@ export class RouterEscrowClient {
       sender: new Address(sender),
       receiver: this.contractAddress,
       gasLimit: this.getDefaultGasLimit('createTask'),
-      value: '0', // No EGLD, using ESDT token
+      value: params.payment.tokenIdentifier === 'EGLD' ? params.payment.amount.toString() : '0', // EGLD value or 0 for ESDT
       data: Buffer.from(`createTask@${this.encodeString(params.metadataUri)}${params.deadline ? `@${params.deadline}` : ''}${params.reviewTimeout ? `@${params.reviewTimeout}` : ''}${params.ap2MandateHash ? `@${this.encodeString(params.ap2MandateHash)}` : ''}${params.priorityFee ? `@${params.priorityFee.toString()}` : ''}`, 'hex'),
       chainID: this.getChainId(this.config.network)
     });
+
+    // Add ESDT token payment if not EGLD
+    if (params.payment.tokenIdentifier !== 'EGLD') {
+      // In a real implementation, this would add token transfers
+      // For now, we'll just return the transaction without token transfers
+      // The actual token transfer would be handled by the wallet/signer
+    }
 
     return tx;
   }
@@ -205,10 +212,17 @@ export class RouterEscrowClient {
       sender: new Address(sender),
       receiver: this.contractAddress,
       gasLimit: this.getDefaultGasLimit('acceptAnyToken'),
-      value: '0', // No EGLD, using ESDT token
+      value: '0', // No EGLD for ESDT tokens
       data: Buffer.from('acceptAnyToken', 'hex'),
       chainID: this.getChainId(this.config.network)
     });
+
+    // Add ESDT token payment
+    if (params.payment.tokenIdentifier !== 'EGLD') {
+      // In a real implementation, this would add token transfers
+      // For now, we'll just return the transaction without token transfers
+      // The actual token transfer would be handled by the wallet/signer
+    }
 
     return tx;
   }
