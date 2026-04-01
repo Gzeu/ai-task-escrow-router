@@ -1,0 +1,28 @@
+[package]
+name = "router-escrow"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI Task Escrow Team"]
+description = "AI Task Escrow Router - Simplified Version"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+multiversx-sc = "0.52.3"
+multiversx-sc-derive = "0.52.3"
+
+[features]
+default = ["esdt-token-payment-features"]
+esdt-token-payment-features = ["multiversx-sc/esdt-token-payment-features"]
+panic-behaviour = ["multiversx-sc/panic-behaviour-fallback-raise-exception"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[workspace]
+members = "."

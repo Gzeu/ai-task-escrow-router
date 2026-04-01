@@ -120,6 +120,15 @@ pub struct BatchTaskOperation<M: ManagedTypeApi> {
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, Clone, Debug)]
+pub struct TokenWhitelistEntry<M: ManagedTypeApi> {
+    pub token_identifier: EgldOrEsdtTokenIdentifier<M>,
+    pub is_enabled: bool,
+    pub min_amount: BigUint<M>,
+    pub max_amount: BigUint<M>,
+    pub fee_discount_bps: u16,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, Clone, Debug)]
 pub struct AgentReputationUpdate<M: ManagedTypeApi> {
     pub address: ManagedAddress<M>,
     pub total_tasks: Option<u64>,

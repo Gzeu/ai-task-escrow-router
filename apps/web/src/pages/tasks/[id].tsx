@@ -18,16 +18,21 @@ import {
   Zap,
   Play,
   Pause,
-  Flag
+  Flag,
+  TrendingUp,
+  Users,
+  Award,
+  BarChart3
 } from 'lucide-react';
 
-// Local implementations
+// Updated for v0.3.0 with multi-token support and reputation UI
 interface Task {
   taskId: string;
   creator: string;
   assignedAgent?: string;
   paymentToken: string;
   paymentAmount: string;
+  paymentNonce: number;
   feeBpsSnapshot: number;
   createdAt: number;
   acceptedAt?: number;
@@ -43,7 +48,20 @@ interface Task {
   completionTime?: number;
   priorityFee?: string;
   agentReputationSnapshot?: number;
-  paymentNonce?: number;
+  // v0.3.0 additions
+  organizationId?: string;
+  agentPerformance?: {
+    successRate: number;
+    averageCompletionTime: number;
+    totalEarned: string;
+    tasksCompletedLast30d: number;
+  };
+  tokenInfo?: {
+    tokenIdentifier: string;
+    tokenName: string;
+    tokenDecimals: number;
+    tokenLogo: string;
+  };
 }
 
 enum TaskState {
@@ -55,6 +73,28 @@ enum TaskState {
   Disputed = "Disputed",
   Refunded = "Refunded",
   Resolved = "Resolved"
+}
+
+interface AgentReputation {
+  address: string;
+  totalTasks: number;
+  completedTasks: number;
+  cancelledTasks: number;
+  disputedTasks: number;
+  totalEarned: string;
+  reputationScore: number;
+  averageRating: number;
+  lastActive: number;
+  createdAt: number;
+  specialization: string[];
+  verificationStatus: 'Verified' | 'Pending' | 'Unverified' | 'Suspended';
+  performanceMetrics: {
+    averageCompletionTime: number;
+    successRate: number;
+    disputeRate: number;
+    totalEarnedLast30d: string;
+    tasksCompletedLast30d: number;
+  };
 }
 
 export default function TaskDetailPage() {
@@ -79,8 +119,9 @@ export default function TaskDetailPage() {
         taskId: id as string,
         creator: "erd1qyu5fth97z79s6s7a8h4x0yvq2q9x0p8r7x6q3y5x2z9w8v7j6x5",
         assignedAgent: "erd1spyavw0956vq68xj8y8tenjlq4n7z3y2g7l8n6q0q2q9x0p8r7x6",
-        paymentToken: "EGLD",
-        paymentAmount: "2000000000000000000", // 2 EGLD
+        paymentToken: "USDC-abcdef",
+        paymentAmount: "2000000000", // 2000 USDC (6 decimals)
+        paymentNonce: 0,
         feeBpsSnapshot: 300,
         createdAt: Date.now() - 172800000, // 2 days ago
         acceptedAt: Date.now() - 86000000, // 1 day ago
@@ -89,7 +130,21 @@ export default function TaskDetailPage() {
         metadataUri: "ipfs://QmTaskMetadata",
         resultUri: "ipfs://QmTaskResult",
         state: TaskState.Submitted,
-        agentReputationSnapshot: 850
+        agentReputationSnapshot: 850,
+        // v0.3.0 additions
+        organizationId: "org_123",
+        agentPerformance: {
+          successRate: 94.67,
+          averageCompletionTime: 20 * 3600, // 20 hours
+          totalEarned: "5000000000000000000000", // 5000 EGLD
+          tasksCompletedLast30d: 25
+        },
+        tokenInfo: {
+          tokenIdentifier: "USDC-abcdef",
+          tokenName: "USD Coin",
+          tokenDecimals: 6,
+          tokenLogo: "https://assets.coingecko.com/coins/images/usdc.png"
+        }
       };
       setTask(mockTask);
     } catch (error) {
@@ -142,9 +197,9 @@ export default function TaskDetailPage() {
     }
   };
 
-  const formatAmount = (amount: string): string => {
-    const num = parseFloat(amount) / 1e18;
-    return num.toFixed(4) + ' EGLD';
+  const formatAmount = (amount: string, token: string = 'EGLD', decimals: number = 18): string => {
+    const num = parseFloat(amount) / (10 ** decimals);
+    return num.toFixed(4) + ' ' + token;
   };
 
   const formatDate = (timestamp: number): string => {
@@ -407,7 +462,18 @@ export default function TaskDetailPage() {
 
                   <div>
                     <p className="text-sm text-gray-600">Payment Amount</p>
-                    <p className="font-semibold">{formatAmount(task.paymentAmount)}</p>
+                    <div className="flex items-center">
+                      {task.tokenInfo?.tokenLogo && (
+                        <img 
+                          src={task.tokenInfo.tokenLogo} 
+                          alt={task.tokenInfo.tokenName}
+                          className="w-4 h-4 mr-2"
+                        />
+                      )}
+                      <p className="font-semibold">
+                        {formatAmount(task.paymentAmount, task.tokenInfo?.tokenName || task.paymentToken, task.tokenInfo?.tokenDecimals || 18)}
+                      </p>
+                    </div>
                   </div>
 
                   <div>
@@ -427,12 +493,32 @@ export default function TaskDetailPage() {
                     </div>
                   )}
 
-                  {task.deadline && (
-                    <div>
-                      <p className="text-sm text-gray-600">Deadline</p>
-                      <p className="text-sm">{formatDate(task.deadline)}</p>
+                  {task.organizationId && (
+                <div>
+                  <p className="text-sm text-gray-600">Organization</p>
+                  <p className="font-mono text-sm">{task.organizationId}</p>
+                </div>
+              )}
+
+              {task.agentPerformance && (
+                <div>
+                  <p className="text-sm text-gray-600">Agent Performance</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Success Rate:</span>
+                      <span className="font-semibold text-green-600">{task.agentPerformance.successRate}%</span>
                     </div>
-                  )}
+                    <div className="flex justify-between text-xs">
+                      <span>Avg Time:</span>
+                      <span className="font-semibold">{Math.round(task.agentPerformance.averageCompletionTime / 3600)}h</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>30d Tasks:</span>
+                      <span className="font-semibold">{task.agentPerformance.tasksCompletedLast30d}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
                 </div>
               </div>
 

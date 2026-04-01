@@ -6,7 +6,7 @@
 
 A comprehensive decentralized AI task execution platform built on MultiversX blockchain, featuring multi-token support, reputation systems, organizations, and advanced analytics.
 
-## 🚀 Features v0.3.0
+## �� Features v0.3.0
 
 ### ✅ Core Functionality
 - **🔄 Multi-Token Support** - EGLD, USDC, UTK, MEX and custom ESDT tokens
@@ -241,7 +241,12 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Workflow
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
+3. Commit changes (`git commit -m 
+'
+"
+Add
+amazing
+feature"'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 

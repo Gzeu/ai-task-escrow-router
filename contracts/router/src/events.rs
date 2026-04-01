@@ -36,7 +36,7 @@ pub fn result_submitted_event<M: ManagedTypeApi>(
 pub fn task_approved_event<M: ManagedTypeApi>(
     self: &RouterEscrow<M>,
     #[indexed] task_id: u64,
-    #[indexed] protocol_fee: &BigUint<M>,
+    #[indexed] payment_token: &EgldOrEsdtTokenIdentifier<M>,
     #[indexed] agent_payment: &BigUint<M>,
 ) {
 }
@@ -106,4 +106,21 @@ pub fn specialization_added_event<M: ManagedTypeApi>(
 
 #[event("configChanged")]
 pub fn config_changed_event<M: ManagedTypeApi>(self: &RouterEscrow<M>) {
+}
+
+#[event("tokenWhitelistUpdated")]
+pub fn token_whitelist_updated_event<M: ManagedTypeApi>(
+    self: &RouterEscrow<M>,
+    #[indexed] token_identifier: &EgldOrEsdtTokenIdentifier<M>,
+    #[indexed] is_enabled: bool,
+) {
+}
+
+#[event("reputationUpdated")]
+pub fn reputation_updated_event<M: ManagedTypeApi>(
+    self: &RouterEscrow<M>,
+    #[indexed] agent: &ManagedAddress<M>,
+    #[indexed] new_score: u32,
+    #[indexed] old_score: u32,
+) {
 }

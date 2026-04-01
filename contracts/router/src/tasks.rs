@@ -9,8 +9,12 @@ use crate::RouterEscrow;
 
 pub trait TaskEndpoints<M: ManagedTypeApi> {
     #[endpoint(createTask)]
+    #[payable("*")]
     fn create_task(
         &self,
+        #[payment_amount] payment_amount: BigUint<M>,
+        #[payment_token] payment_token: EgldOrEsdtTokenIdentifier<M>,
+        #[payment_nonce] payment_nonce: u64,
         metadata_uri: ManagedBuffer<M>,
         deadline: OptionalValue<u64>,
         review_timeout: OptionalValue<u64>,
@@ -63,6 +67,9 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
     #[endpoint(createTask)]
     fn create_task(
         &self,
+        #[payment_amount] payment_amount: BigUint<M>,
+        #[payment_token] payment_token: EgldOrEsdtTokenIdentifier<M>,
+        #[payment_nonce] payment_nonce: u64,
         metadata_uri: ManagedBuffer<M>,
         deadline: OptionalValue<u64>,
         review_timeout: OptionalValue<u64>,
@@ -71,13 +78,14 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
     ) -> u64 {
         self.require_not_paused();
         
-        let (payment_token, payment_amount, payment_nonce) = self.call_value()
-            .payment_token()
-            .into_nonzero()
-            .map(|(token, nonce)| (token.into(), nonce.value))
-            .unwrap_or_else(|| (EgldOrEsdtTokenIdentifier::egld(), self.call_value().egld_value().clone_value(), 0u64));
-        
         require!(payment_amount > 0, "Payment must be greater than 0");
+        
+        // Check if token is whitelisted
+        let whitelist = token_whitelist();
+        let is_whitelisted = whitelist.iter().any(|entry| {
+            entry.token_identifier == payment_token && entry.is_enabled
+        });
+        require!(is_whitelisted, "Token is not whitelisted");
         
         let task_id = task_counter().get();
         task_counter().set(&(task_id + 1));
@@ -97,7 +105,7 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             task_id,
             creator: caller,
             assigned_agent: None,
-            payment_token,
+            payment_token: payment_token.clone(),
             payment_amount: payment_amount.clone(),
             payment_nonce,
             protocol_fee_bps: config.fee_bps,
@@ -239,7 +247,22 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             &task.payment_token,
             task.payment_nonce,
             &protocol_fee,
+            "Protocol fee"
         );
+        
+        // Transfer payment to agent with correct token
+        if let Some(agent) = &task.assigned_agent {
+            self.send().direct(
+                agent,
+                &task.payment_token,
+                task.payment_nonce,
+                &agent_payment,
+                "Task payment"
+            );
+        }
+        
+        task.state = TaskState::Approved;
+        tasks(task_id).set(&task);
         
         // Transfer payment to agent
         if let Some(agent) = &task.assigned_agent {
@@ -263,8 +286,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             agent_active_tasks(agent).set(current_active - 1);
         }
         
-        task.state = TaskState::Approved;
-        tasks(task_id).set(&task);
         task_approved_event(self, task_id, &protocol_fee, &agent_payment);
     }
 
@@ -278,12 +299,13 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         require!(task.state == TaskState::Open, "Only open tasks can be cancelled");
         require!(task.creator == caller, "Only creator can cancel task");
         
-        // Refund full payment to creator
+        // Refund full payment to creator with correct token
         self.send().direct(
             &task.creator,
             &task.payment_token,
             task.payment_nonce,
             &task.payment_amount,
+            "Task cancelled - refund"
         );
         
         task.state = TaskState::Cancelled;

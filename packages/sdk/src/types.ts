@@ -1,6 +1,6 @@
 /**
  * AI Task Escrow Router SDK Types
- * Updated to match Rust contract structures
+ * Updated to match Rust contract structures - v0.3.0 with ESDT, Reputation, Organizations, Analytics
  */
 
 // Core enums - matching Rust exactly
@@ -26,6 +26,14 @@ export enum DisputeResolution {
   FullRefund = "FullRefund",
   PartialRefund = "PartialRefund",
   FullPayment = "FullPayment"
+}
+
+// v0.3.0 - Organization enums
+export enum OrganizationRole {
+  Owner = "Owner",
+  Admin = "Admin",
+  Member = "Member",
+  Agent = "Agent"
 }
 
 // Core interfaces - matching Rust struct fields exactly
@@ -91,6 +99,57 @@ export interface Config {
   maxConcurrentTasks: number;
 }
 
+// v0.2.0 - ESDT Multi-Token Support
+export interface TokenWhitelistEntry {
+  tokenIdentifier: string;
+  isEnabled: boolean;
+  minAmount: bigint;
+  maxAmount: bigint;
+  feeDiscountBps: number;
+}
+
+// v0.3.0 - Organization interfaces
+export interface Organization {
+  id: string;
+  name: string;
+  description: string;
+  owner: string;
+  createdAt: number;
+  isActive: boolean;
+  memberCount: number;
+  totalTasksCompleted: number;
+  totalRevenue: bigint;
+}
+
+export interface OrganizationMember {
+  address: string;
+  role: OrganizationRole;
+  joinedAt: number;
+  permissions: string[];
+}
+
+// v0.3.0 - Analytics interfaces
+export interface TaskStatistics {
+  totalTasks: number;
+  completedTasks: number;
+  cancelledTasks: number;
+  disputedTasks: number;
+  totalVolume: bigint;
+  averageTaskValue: bigint;
+  mostActiveAgent: string | null;
+  peakDailyTasks: number;
+}
+
+export interface AgentPerformance {
+  address: string;
+  reputationScore: number;
+  successRate: number;
+  averageCompletionTime: number;
+  totalEarned: bigint;
+  tasksCompletedLast30d: number;
+  specializationCount: number;
+}
+
 // Configuration interfaces
 export interface NetworkConfig {
   chainId: string;
@@ -114,6 +173,28 @@ export interface RouterEscrowClientConfig {
     claimApproval?: number;
     refundExpiredTask?: number;
     batchTaskOperations?: number;
+    // v0.2.0 ESDT endpoints
+    addTokenToWhitelist?: number;
+    removeTokenFromWhitelist?: number;
+    updateTokenWhitelist?: number;
+    // v0.2.0 Reputation endpoints
+    updateReputationAfterTask?: number;
+    getTopAgents?: number;
+    stakeReputation?: number;
+    unstakeReputation?: number;
+    slashReputation?: number;
+    // v0.3.0 Organization endpoints
+    createOrganization?: number;
+    joinOrganization?: number;
+    leaveOrganization?: number;
+    addOrgMember?: number;
+    removeOrgMember?: number;
+    updateOrgMemberRole?: number;
+    // v0.3.0 Analytics endpoints
+    getTaskStatistics?: number;
+    getAgentPerformance?: number;
+    getTopPerformingAgents?: number;
+    getRevenueMetrics?: number;
   };
 }
 
@@ -175,14 +256,111 @@ export interface ProposeUpgradeParams {
   executionDelay: number;
 }
 
+// v0.2.0 - ESDT Token Management
+export interface AddTokenToWhitelistParams {
+  tokenIdentifier: string;
+  minAmount: bigint;
+  maxAmount: bigint;
+  feeDiscountBps: number;
+}
+
+export interface UpdateTokenWhitelistParams {
+  tokenIdentifier: string;
+  isEnabled: boolean;
+  minAmount: bigint;
+  maxAmount: bigint;
+  feeDiscountBps: number;
+}
+
+export interface UpdateReputationAfterTaskParams {
+  taskId: bigint;
+  success: boolean;
+  completionTime: number;
+}
+
+export interface StakeReputationParams {
+  amount: bigint;
+}
+
+export interface UnstakeReputationParams {
+  amount: bigint;
+}
+
+export interface SlashReputationParams {
+  agent: string;
+  amount: bigint;
+}
+
+// v0.3.0 - Organization Management
+export interface CreateOrganizationParams {
+  name: string;
+  description: string;
+}
+
+export interface JoinOrganizationParams {
+  orgId: string;
+}
+
+export interface LeaveOrganizationParams {
+  orgId: string;
+}
+
+export interface AddOrgMemberParams {
+  orgId: string;
+  member: string;
+  role: OrganizationRole;
+  permissions: string[];
+}
+
+export interface RemoveOrgMemberParams {
+  orgId: string;
+  member: string;
+}
+
+export interface UpdateOrgMemberRoleParams {
+  orgId: string;
+  member: string;
+  role: OrganizationRole;
+}
+
+// v0.3.0 - Analytics
+export interface GetRevenueMetricsParams {
+  periodDays: number;
+}
+
+export interface UpdateTaskStatisticsParams {
+  taskId: bigint;
+  oldState: TaskState;
+  newState: TaskState;
+}
+
 // Utility functions
-export const formatAmount = (amount: bigint | string): string => {
+export const formatAmount = (amount: bigint | string, token: string = 'EGLD'): string => {
   const num = Number(amount) / 1e18;
-  return num.toFixed(4) + ' EGLD';
+  return num.toFixed(4) + ' ' + token;
 };
 
 export const formatDate = (timestamp: number): string => {
   return new Date(timestamp * 1000).toLocaleDateString();
+};
+
+export const formatTokenAmount = (amount: bigint | string, decimals: number = 18): string => {
+  const divisor = 10 ** decimals;
+  const num = Number(amount) / divisor;
+  return num.toFixed(4);
+};
+
+export const calculateReputationScore = (
+  successRate: number,
+  averageCompletionTime: number,
+  totalEarned: bigint
+): number => {
+  // Weight-based scoring: success (0.4), speed (0.3), volume (0.3)
+  const successScore = successRate * 0.4;
+  const speedScore = averageCompletionTime <= 86400 ? 10000 * 0.3 : (86400 * 10000 / averageCompletionTime) * 0.3;
+  const volumeScore = Math.log10(Number(totalEarned)) * 1000 * 0.3;
+  
+  return Math.floor(successScore + speedScore + volumeScore);
 };
 
 // Error handling
@@ -218,7 +396,7 @@ export interface ResultSubmittedEvent {
 
 export interface TaskApprovedEvent {
   taskId: bigint;
-  protocolFee: bigint;
+  paymentToken: string;
   agentPayment: bigint;
 }
 
@@ -238,4 +416,41 @@ export interface DisputeResolvedEvent {
 
 export interface TaskRefundedEvent {
   taskId: bigint;
+}
+
+// v0.2.0 - New events
+export interface TokenWhitelistUpdatedEvent {
+  tokenIdentifier: string;
+  isEnabled: boolean;
+}
+
+export interface ReputationUpdatedEvent {
+  agent: string;
+  newScore: number;
+  oldScore: number;
+}
+
+// v0.3.0 - Organization events
+export interface OrganizationCreatedEvent {
+  orgId: string;
+  name: string;
+  owner: string;
+}
+
+export interface OrganizationMemberAddedEvent {
+  orgId: string;
+  member: string;
+  role: OrganizationRole;
+}
+
+export interface OrganizationMemberRemovedEvent {
+  orgId: string;
+  member: string;
+}
+
+// v0.3.0 - Analytics events
+export interface TaskStatisticsUpdatedEvent {
+  taskId: bigint;
+  oldState: TaskState;
+  newState: TaskState;
 }

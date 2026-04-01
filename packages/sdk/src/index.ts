@@ -1,6 +1,6 @@
 /**
  * AI Task Escrow Router SDK Exports
- * Updated to match Rust contract implementation
+ * Updated to match Rust contract implementation - v0.3.0 with ESDT, Reputation, Organizations, Analytics
  */
 
 // Export all types
@@ -22,8 +22,31 @@ export type {
   TransactionResult,
   TaskState,
   VerificationStatus,
-  DisputeResolution
+  DisputeResolution,
+  // v0.2.0 ESDT & Reputation
+  TokenWhitelistEntry,
+  AddTokenToWhitelistParams,
+  UpdateTokenWhitelistParams,
+  UpdateReputationAfterTaskParams,
+  StakeReputationParams,
+  UnstakeReputationParams,
+  SlashReputationParams,
+  // v0.3.0 Organizations
+  Organization,
+  OrganizationMember,
+  OrganizationRole,
+  CreateOrganizationParams,
+  JoinOrganizationParams,
+  LeaveOrganizationParams,
+  AddOrgMemberParams,
+  RemoveOrgMemberParams,
+  UpdateOrgMemberRoleParams,
+  // v0.3.0 Analytics
+  TaskStatistics,
+  AgentPerformance,
+  GetRevenueMetricsParams,
+  UpdateTaskStatisticsParams
 } from './types';
 
 // Export utility functions
-export { formatAmount, formatDate } from './types';
+export { formatAmount, formatDate, formatTokenAmount, calculateReputationScore } from './types';
