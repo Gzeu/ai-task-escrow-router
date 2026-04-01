@@ -271,9 +271,21 @@ export default function HomePage() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Protocol</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/docs" className="hover:text-white">Documentation</Link></li>
-                <li><Link href="/api" className="hover:text-white">API Reference</Link></li>
-                <li><Link href="/contracts" className="hover:text-white">Smart Contracts</Link></li>
+                <li>
+                  <Link href="/docs" className="hover:text-white">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/api" className="hover:text-white">
+                    API Reference
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contracts" className="hover:text-white">
+                    Smart Contracts
+                  </Link>
+                </li>
               </ul>
             </div>
 
