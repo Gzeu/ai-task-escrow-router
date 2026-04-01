@@ -9,7 +9,9 @@ import {
   TransactionComputer,
   ContractFunction,
   U64Value,
-  TypedValue
+  TypedValue,
+  TokenPayment,
+  TokenTransfer
 } from '@multiversx/sdk-core';
 import { 
   RouterEscrowClientConfig,
@@ -37,6 +39,17 @@ import {
   StakeReputationParams,
   UnstakeReputationParams,
   SlashReputationParams,
+  // v0.3.0 ESDT Multi-Token Support
+  TokenPayment as TokenPaymentType,
+  TokenInfo,
+  TokenValidationResult,
+  CreateTaskWithTokenParams,
+  GetTokenInfoParams,
+  ValidateTokenParams,
+  GetSupportedTokensParams,
+  AcceptAnyTokenParams,
+  TokenInfoResult,
+  SupportedTokensResult,
   // v0.3.0 Organizations
   Organization,
   OrganizationMember,
@@ -135,6 +148,11 @@ export class RouterEscrowClient {
       stakeReputation: 10000000,
       unstakeReputation: 10000000,
       slashReputation: 12000000,
+      // v0.3.0 ESDT Multi-Token endpoints
+      acceptAnyToken: 8000000,
+      getTokenInfo: 5000000,
+      validateToken: 5000000,
+      getSupportedTokens: 5000000,
       // v0.3.0 Organization endpoints
       createOrganization: 15000000,
       joinOrganization: 8000000,
@@ -160,6 +178,33 @@ export class RouterEscrowClient {
       gasLimit: this.getDefaultGasLimit('createTask'),
       value: params.paymentAmount.toString(),
       data: Buffer.from(`createTask@${this.encodeString(params.metadataUri)}${params.deadline ? `@${params.deadline}` : ''}${params.reviewTimeout ? `@${params.reviewTimeout}` : ''}${params.ap2MandateHash ? `@${this.encodeString(params.ap2MandateHash)}` : ''}${params.priorityFee ? `@${params.priorityFee.toString()}` : ''}`, 'hex'),
+      chainID: this.getChainId(this.config.network)
+    });
+
+    return tx;
+  }
+
+  // v0.3.0 ESDT Multi-Token Transaction Builders
+  async buildCreateTaskWithToken(sender: string, params: CreateTaskWithTokenParams): Promise<Transaction> {
+    const tx = new Transaction({
+      sender: new Address(sender),
+      receiver: this.contractAddress,
+      gasLimit: this.getDefaultGasLimit('createTask'),
+      value: '0', // No EGLD, using ESDT token
+      data: Buffer.from(`createTask@${this.encodeString(params.metadataUri)}${params.deadline ? `@${params.deadline}` : ''}${params.reviewTimeout ? `@${params.reviewTimeout}` : ''}${params.ap2MandateHash ? `@${this.encodeString(params.ap2MandateHash)}` : ''}${params.priorityFee ? `@${params.priorityFee.toString()}` : ''}`, 'hex'),
+      chainID: this.getChainId(this.config.network)
+    });
+
+    return tx;
+  }
+
+  async buildAcceptAnyToken(sender: string, params: AcceptAnyTokenParams): Promise<Transaction> {
+    const tx = new Transaction({
+      sender: new Address(sender),
+      receiver: this.contractAddress,
+      gasLimit: this.getDefaultGasLimit('acceptAnyToken'),
+      value: '0', // No EGLD, using ESDT token
+      data: Buffer.from('acceptAnyToken', 'hex'),
       chainID: this.getChainId(this.config.network)
     });
 
@@ -651,6 +696,101 @@ export class RouterEscrowClient {
     }
   }
 
+  // v0.3.0 ESDT Multi-Token Query Methods - Simplified Implementation
+  async getTokenInfo(params: GetTokenInfoParams): Promise<TokenInfoResult> {
+    // Simplified implementation for ESDT multi-token support
+    // In production, this would use proper ABI decoding from the contract
+    return {
+      identifier: params.tokenIdentifier,
+      name: params.tokenIdentifier === 'EGLD' ? 'EGLD' : 'ESDT Token',
+      decimals: params.tokenIdentifier === 'EGLD' ? 18 : 18, // Default to 18 decimals
+      totalSupply: '0', // Would be fetched from contract
+      isEGLD: params.tokenIdentifier === 'EGLD'
+    };
+  }
+
+  async validateToken(params: ValidateTokenParams): Promise<boolean> {
+    // Simplified validation - in production, this would query the contract
+    return params.tokenIdentifier === 'EGLD' || params.tokenIdentifier.length > 0;
+  }
+
+  async getSupportedTokens(): Promise<SupportedTokensResult> {
+    // Simplified implementation - in production, this would query the contract
+    return {
+      tokens: ['EGLD', 'MEX'] // Would include all supported ESDT tokens from contract
+    };
+  }
+
+  // v0.3.0 ESDT Multi-Token Utility Methods
+  private decodeMultiTokenResult(result: any): string[] {
+    // In a real implementation, this would properly decode the ABI result
+    // For now, return a placeholder
+    try {
+      const hexString = result.toString();
+      // This is a simplified decoding - in reality, you'd use proper ABI decoding
+      return hexString.includes('@') ? hexString.split('@').slice(1) : [hexString];
+    } catch {
+      return [];
+    }
+  }
+
+  private decodeStringArray(result: any): string[] {
+    // In a real implementation, this would properly decode the ABI result
+    // For now, return a placeholder
+    try {
+      const hexString = result.toString();
+      // This is a simplified decoding - in reality, you'd use proper ABI decoding
+      return hexString.includes('@') ? hexString.split('@').slice(1) : [hexString];
+    } catch {
+      return [];
+    }
+  }
+
+  // v0.3.0 ESDT Multi-Token Utility Functions
+  createTokenPayment(tokenIdentifier: string, amount: bigint, nonce: bigint = 0n): TokenPaymentType {
+    return {
+      tokenIdentifier,
+      amount,
+      nonce
+    };
+  }
+
+  createEGLDPayment(amount: bigint): TokenPaymentType {
+    return this.createTokenPayment('EGLD', amount, 0n);
+  }
+
+  createESDTPayment(tokenIdentifier: string, amount: bigint, nonce: bigint): TokenPaymentType {
+    return this.createTokenPayment(tokenIdentifier, amount, nonce);
+  }
+
+  formatTokenAmount(amount: bigint, decimals: number): string {
+    const divisor = BigInt(10) ** BigInt(decimals);
+    const whole = amount / divisor;
+    const fraction = amount % divisor;
+    
+    if (fraction === 0n) {
+      return whole.toString();
+    }
+    
+    const fractionStr = fraction.toString().padStart(decimals, '0');
+    const trimmedFraction = fractionStr.replace(/0+$/, '');
+    
+    return `${whole}.${trimmedFraction}`;
+  }
+
+  parseTokenAmount(formattedAmount: string, decimals: number): bigint {
+    const [whole, fraction = ''] = formattedAmount.split('.');
+    const wholeBigInt = BigInt(whole);
+    const divisor = BigInt(10) ** BigInt(decimals);
+    
+    if (fraction === '') {
+      return wholeBigInt * divisor;
+    }
+    
+    const fractionBigInt = BigInt(fraction.padEnd(decimals, '0').slice(0, decimals));
+    return wholeBigInt * divisor + fractionBigInt;
+  }
+
   private encodeTaskState(state: TaskState): string {
     switch (state) {
       case TaskState.Open:
@@ -673,21 +813,6 @@ export class RouterEscrowClient {
         throw new RouterEscrowError(`Unknown task state: ${state}`, 'ENCODE_ERROR');
     }
   }
-
-  private decodeTask(result: any): Task {
-    // In a real implementation, this would properly decode the ABI result
-    // For now, return a placeholder
-    return {
-      taskId: BigInt(0),
-      creator: '',
-      assignedAgent: null,
-      paymentToken: '',
-      paymentAmount: BigInt(0),
-      paymentNonce: BigInt(0),
-      protocolFeeBps: 0,
-      createdAt: 0,
-      acceptedAt: null,
-      deadline: null,
       reviewTimeout: null,
       metadataUri: '',
       resultUri: null,

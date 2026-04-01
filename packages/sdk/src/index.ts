@@ -3,10 +3,9 @@
  * Updated to match Rust contract implementation - v0.3.0 with ESDT, Reputation, Organizations, Analytics
  */
 
-// Export all types
+// v0.3.0 ESDT Multi-Token Support
 export * from './types';
-
-// Export main client
+export * from './client';
 export { RouterEscrowClient } from './client';
 
 // Re-export commonly used types for convenience

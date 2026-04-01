@@ -41,9 +41,9 @@ export interface Task {
   taskId: bigint;
   creator: string;
   assignedAgent: string | null;
-  paymentToken: string;
+  paymentToken: string; // ESDT token identifier or "EGLD"
   paymentAmount: bigint;
-  paymentNonce: bigint;
+  paymentNonce: bigint; // ESDT nonce (0 for EGLD)
   protocolFeeBps: number;
   createdAt: number;
   acceptedAt: number | null;
@@ -59,6 +59,36 @@ export interface Task {
   priorityFee: bigint | null;
   gasUsed: bigint | null;
   completionTime: number | null;
+}
+
+// ESDT Multi-Token Support Types
+export interface TokenPayment {
+  tokenIdentifier: string; // ESDT token identifier or "EGLD"
+  amount: bigint;
+  nonce: bigint; // ESDT nonce (0 for EGLD)
+}
+
+export interface TokenInfo {
+  identifier: string;
+  name: string;
+  decimals: number;
+  totalSupply: bigint;
+  isEGLD: boolean;
+}
+
+export interface TokenValidationResult {
+  isValid: boolean;
+  tokenInfo?: TokenInfo;
+  error?: string;
+}
+
+export interface CreateTaskWithTokenParams {
+  metadataUri: string;
+  deadline?: number;
+  reviewTimeout?: number;
+  ap2MandateHash?: string;
+  priorityFee?: bigint;
+  payment: TokenPayment; // ESDT payment details
 }
 
 export interface AgentReputation {
@@ -99,13 +129,43 @@ export interface Config {
   maxConcurrentTasks: number;
 }
 
-// v0.2.0 - ESDT Multi-Token Support
+// v0.2.0 - ESDT Multi-Token Support (Enhanced)
 export interface TokenWhitelistEntry {
   tokenIdentifier: string;
   isEnabled: boolean;
   minAmount: bigint;
   maxAmount: bigint;
   feeDiscountBps: number;
+}
+
+// ESDT Multi-Token Query Parameters
+export interface GetTokenInfoParams {
+  tokenIdentifier: string;
+}
+
+export interface ValidateTokenParams {
+  tokenIdentifier: string;
+}
+
+export interface GetSupportedTokensParams {
+  // No parameters needed
+}
+
+export interface AcceptAnyTokenParams {
+  payment: TokenPayment;
+}
+
+// ESDT Multi-Token Query Results
+export interface TokenInfoResult {
+  identifier: string;
+  name: string;
+  decimals: number;
+  totalSupply: string; // BigUint as string
+  isEGLD: boolean;
+}
+
+export interface SupportedTokensResult {
+  tokens: string[]; // Array of token identifiers
 }
 
 // v0.3.0 - Organization interfaces
