@@ -16,6 +16,7 @@ mod dispute;
 mod views;
 mod organizations;
 mod analytics;
+mod multi_token;
 
 use types::*;
 use storage::*;
@@ -32,6 +33,7 @@ pub trait RouterEscrow:
     + views::ViewEndpoints<M>
     + organizations::OrganizationEndpoints<M>
     + analytics::AnalyticsEndpoints<M>
+    + multi_token::MultiTokenEndpoints<M>
 where M: ManagedTypeApi
 {
     #[init]
@@ -48,38 +50,25 @@ where M: ManagedTypeApi
         require!(max_concurrent_tasks <= 100, "Max concurrent tasks cannot exceed 100");
         
         let config = Config {
-            owner,
-            treasury,
+            owner: owner.clone(),
+            treasury: treasury.clone(),
             fee_bps,
             resolver: None,
             paused: false,
             min_reputation,
             max_task_value: None,
-            reputation_decay_rate: 50, // 0.5% per month
+            reputation_decay_rate: 100, // 1% decay per month
             emergency_pause: false,
-            upgrade_proposal_threshold: 1000, // 10% of total supply
+            upgrade_proposal_threshold: 5000, // 50%
             max_concurrent_tasks,
         };
         
+        // Initialize storage
         config().set(&config);
         task_counter().set(&1u64);
         
-        // Initialize batch operation tracking
-        batch_operations().clear();
-        
-        // Initialize token whitelist with default tokens (EGLD, USDC, UTK, MEX)
-        let mut whitelist = ManagedVec::new();
-        
-        // EGLD (always enabled)
-        whitelist.push(TokenWhitelistEntry {
-            token_identifier: EgldOrEsdtTokenIdentifier::egld(),
-            is_enabled: true,
-            min_amount: BigUint::from(100000000000000000u64), // 0.0001 EGLD
-            max_amount: BigUint::from(1000000000000000000000u64), // 10000 EGLD
-            fee_discount_bps: 0,
-        });
-        
-        token_whitelist().set(&whitelist);
+        // Emit initialization event
+        contract_initialized_event(self, &owner, &treasury, fee_bps);
     }
 }
 

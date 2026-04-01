@@ -80,12 +80,28 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         
         require!(payment_amount > 0, "Payment must be greater than 0");
         
-        // Check if token is whitelisted
+        // ESDT Multi-Token Support: Accept any ESDT token + EGLD
+        // Check if token is either EGLD or a valid ESDT token
+        let is_valid_token = match &payment_token {
+            EgldOrEsdtTokenIdentifier::Egld => true,
+            EgldOrEsdtTokenIdentifier::Esdt(esdt_id) => {
+                // For ESDT tokens, we accept any valid token identifier
+                // Additional validation can be added here if needed
+                !esdt_id.is_empty()
+            }
+        };
+        
+        require!(is_valid_token, "Invalid token identifier");
+        
+        // Optional: Check if token is whitelisted (remove this to accept any ESDT)
+        // If you want to restrict to whitelisted tokens, uncomment the following:
+        /*
         let whitelist = token_whitelist();
         let is_whitelisted = whitelist.iter().any(|entry| {
             entry.token_identifier == payment_token && entry.is_enabled
         });
         require!(is_whitelisted, "Token is not whitelisted");
+        */
         
         let task_id = task_counter().get();
         task_counter().set(&(task_id + 1));
@@ -241,7 +257,7 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         let protocol_fee = &task.payment_amount * BigUint::from(config.fee_bps) / BigUint::from(10000u64);
         let agent_payment = &task.payment_amount - &protocol_fee;
         
-        // Transfer protocol fee to treasury
+        // ESDT Multi-Token Support: Transfer protocol fee to treasury with correct token
         self.send().direct(
             &config.treasury,
             &task.payment_token,
@@ -250,7 +266,7 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             "Protocol fee"
         );
         
-        // Transfer payment to agent with correct token
+        // ESDT Multi-Token Support: Transfer payment to agent with correct token and nonce
         if let Some(agent) = &task.assigned_agent {
             self.send().direct(
                 agent,
@@ -258,19 +274,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
                 task.payment_nonce,
                 &agent_payment,
                 "Task payment"
-            );
-        }
-        
-        task.state = TaskState::Approved;
-        tasks(task_id).set(&task);
-        
-        // Transfer payment to agent
-        if let Some(agent) = &task.assigned_agent {
-            self.send().direct(
-                agent,
-                &task.payment_token,
-                task.payment_nonce,
-                &agent_payment,
             );
             
             // Update agent reputation
@@ -281,12 +284,13 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             reputation.last_active = self.blockchain().get_block_timestamp();
             agent_reputation(agent).set(&reputation);
             
-            // Decrement active tasks
-            let current_active = agent_active_tasks(agent).get();
-            agent_active_tasks(agent).set(current_active - 1);
+            // Emit approval event with token information
+            task_approved_event(self, task_id, agent, &agent_payment, &task.payment_token);
         }
         
-        task_approved_event(self, task_id, &protocol_fee, &agent_payment);
+        task.state = TaskState::Approved;
+        task.completion_time = Some(self.blockchain().get_block_timestamp());
+        tasks(task_id).set(&task);
     }
 
     #[endpoint(cancelTask)]
@@ -299,7 +303,7 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         require!(task.state == TaskState::Open, "Only open tasks can be cancelled");
         require!(task.creator == caller, "Only creator can cancel task");
         
-        // Refund full payment to creator with correct token
+        // Refund full payment to creator with correct token and nonce
         self.send().direct(
             &task.creator,
             &task.payment_token,
@@ -355,12 +359,13 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         
         match resolution {
             DisputeResolution::FullRefund => {
-                // Refund full payment to creator
+                // ESDT Multi-Token Support: Refund full payment to creator with correct token
                 self.send().direct(
                     &task.creator,
                     &task.payment_token,
                     task.payment_nonce,
                     &task.payment_amount,
+                    "Dispute resolved - full refund"
                 );
             }
             DisputeResolution::PartialRefund { agent_award_bps } => {
@@ -370,51 +375,56 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
                 let agent_award = &task.payment_amount * BigUint::from(agent_award_bps) / BigUint::from(10000u64);
                 let creator_refund = &task.payment_amount - &protocol_fee - &agent_award;
                 
-                // Transfer protocol fee to treasury
+                // ESDT Multi-Token Support: Transfer protocol fee to treasury with correct token
                 self.send().direct(
                     &config.treasury,
                     &task.payment_token,
                     task.payment_nonce,
                     &protocol_fee,
+                    "Protocol fee from dispute"
                 );
                 
-                // Transfer award to agent
+                // ESDT Multi-Token Support: Transfer award to agent with correct token
                 if let Some(agent) = &task.assigned_agent {
                     self.send().direct(
                         agent,
                         &task.payment_token,
                         task.payment_nonce,
                         &agent_award,
+                        "Dispute award"
                     );
                 }
                 
-                // Transfer refund to creator
+                // ESDT Multi-Token Support: Transfer refund to creator with correct token
                 self.send().direct(
                     &task.creator,
                     &task.payment_token,
                     task.payment_nonce,
                     &creator_refund,
+                    "Dispute refund"
                 );
             }
             DisputeResolution::FullPayment => {
                 let protocol_fee = &task.payment_amount * BigUint::from(config.fee_bps) / BigUint::from(10000u64);
                 let agent_payment = &task.payment_amount - &protocol_fee;
                 
-                // Transfer protocol fee to treasury
+                // ESDT Multi-Token Support: Transfer protocol fee to treasury with correct token
                 self.send().direct(
                     &config.treasury,
                     &task.payment_token,
                     task.payment_nonce,
                     &protocol_fee,
+                    "Protocol fee from dispute"
                 );
                 
-                // Transfer full payment to agent
+                // ESDT Multi-Token Support: Transfer full payment to agent with correct token
                 if let Some(agent) = &task.assigned_agent {
                     self.send().direct(
                         agent,
                         &task.payment_token,
                         task.payment_nonce,
                         &agent_payment,
+                        "Dispute full payment"
                     );
                 }
             }
@@ -447,12 +457,13 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             "Task deadline has not passed"
         );
         
-        // Refund full payment to creator
+        // ESDT Multi-Token Support: Refund full payment to creator with correct token
         self.send().direct(
             &task.creator,
             &task.payment_token,
             task.payment_nonce,
             &task.payment_amount,
+            "Task expired - refund"
         );
         
         task.state = TaskState::Refunded;

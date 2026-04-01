@@ -36,8 +36,9 @@ pub fn result_submitted_event<M: ManagedTypeApi>(
 pub fn task_approved_event<M: ManagedTypeApi>(
     self: &RouterEscrow<M>,
     #[indexed] task_id: u64,
-    #[indexed] payment_token: &EgldOrEsdtTokenIdentifier<M>,
+    #[indexed] agent: &ManagedAddress<M>,
     #[indexed] agent_payment: &BigUint<M>,
+    #[indexed] payment_token: &EgldOrEsdtTokenIdentifier<M>,
 ) {
 }
 
@@ -122,5 +123,14 @@ pub fn reputation_updated_event<M: ManagedTypeApi>(
     #[indexed] agent: &ManagedAddress<M>,
     #[indexed] new_score: u32,
     #[indexed] old_score: u32,
+) {
+}
+
+#[event("contractInitialized")]
+pub fn contract_initialized_event<M: ManagedTypeApi>(
+    self: &RouterEscrow<M>,
+    #[indexed] owner: &ManagedAddress<M>,
+    #[indexed] treasury: &ManagedAddress<M>,
+    #[indexed] fee_bps: u16,
 ) {
 }
