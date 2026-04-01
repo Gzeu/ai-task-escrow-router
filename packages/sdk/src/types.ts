@@ -226,18 +226,16 @@ export interface RouterEscrowClientConfig {
     createTask?: number;
     acceptTask?: number;
     submitResult?: number;
-    approveTask?: number;
+    approveResult?: number;
     cancelTask?: number;
     openDispute?: number;
+    disputeTask?: number;
     resolveDispute?: number;
-    claimApproval?: number;
-    refundExpiredTask?: number;
-    batchTaskOperations?: number;
-    // v0.2.0 ESDT endpoints
-    addTokenToWhitelist?: number;
-    removeTokenFromWhitelist?: number;
-    updateTokenWhitelist?: number;
-    // v0.2.0 Reputation endpoints
+    acceptAnyToken?: number;
+    getTokenInfo?: number;
+    validateToken?: number;
+    getSupportedTokens?: number;
+    getRevenueMetrics?: number;
     updateReputationAfterTask?: number;
     getTopAgents?: number;
     stakeReputation?: number;

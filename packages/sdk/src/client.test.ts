@@ -27,7 +27,6 @@ describe('RouterEscrowClient - ESDT Multi-Token Support', () => {
       apiTimeout: 6000,
       gasLimit: {
         createTask: 15000000,
-        acceptAnyToken: 8000000,
         getTokenInfo: 5000000,
         validateToken: 5000000,
         getSupportedTokens: 5000000
