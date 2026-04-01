@@ -126,7 +126,7 @@ export class RouterEscrowClient {
   }
 
   private getDefaultGasLimit(operation: string): number {
-    const defaults = {
+    const defaults: Record<string, number> = {
       // Core task endpoints
       createTask: 15000000,
       acceptTask: 8000000,
@@ -167,7 +167,9 @@ export class RouterEscrowClient {
       getRevenueMetrics: 6000000
     };
     
-    return this.config.gasLimit?.[operation as keyof typeof defaults] || defaults[operation as keyof typeof defaults] || 5000000;
+    // Use type assertion to bypass TypeScript's strict checking
+    const gasLimit = (this.config.gasLimit as any)?.[operation] ?? defaults[operation] ?? 5000000;
+    return gasLimit as number;
   }
 
   // Transaction builders
@@ -520,7 +522,29 @@ export class RouterEscrowClient {
     try {
       // Note: In a real implementation, this would use proper ABI queries
       // For now, return mock data
-      return this.decodeTask({});
+      return {
+        taskId: taskId,
+        creator: 'erd1creator',
+        assignedAgent: null,
+        paymentToken: 'EGLD',
+        paymentAmount: 1000000000000000000n,
+        paymentNonce: 0n,
+        protocolFeeBps: 250,
+        createdAt: Date.now(),
+        acceptedAt: null,
+        deadline: null,
+        reviewTimeout: null,
+        metadataUri: `ipfs://task-${taskId}`,
+        resultUri: null,
+        state: TaskState.Open,
+        disputeMetadata: null,
+        ap2MandateHash: null,
+        x402SettlementRef: null,
+        agentReputationSnapshot: null,
+        priorityFee: null,
+        gasUsed: null,
+        completionTime: null
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get task ${taskId}: ${error.message}`, 'QUERY_ERROR');
     }
@@ -538,7 +562,19 @@ export class RouterEscrowClient {
   async getConfig(): Promise<Config> {
     try {
       // Note: In a real implementation, this would query the contract
-      return this.decodeConfig({});
+      return {
+        owner: 'erd1owner',
+        treasury: 'erd1treasury',
+        feeBps: 250,
+        resolver: null,
+        paused: false,
+        minReputation: 100,
+        maxTaskValue: null,
+        reputationDecayRate: 10,
+        emergencyPause: false,
+        upgradeProposalThreshold: 5000,
+        maxConcurrentTasks: 10
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get config: ${error.message}`, 'QUERY_ERROR');
     }
@@ -547,7 +583,27 @@ export class RouterEscrowClient {
   async getAgentReputation(address: string): Promise<AgentReputation | null> {
     try {
       // Note: In a real implementation, this would query the contract
-      return this.decodeAgentReputation({});
+      return {
+        address: address,
+        totalTasks: 0,
+        completedTasks: 0,
+        cancelledTasks: 0,
+        disputedTasks: 0,
+        totalEarned: BigInt(0),
+        reputationScore: 100,
+        averageRating: 5,
+        lastActive: Date.now(),
+        createdAt: Date.now(),
+        specialization: [],
+        verificationStatus: VerificationStatus.Unverified,
+        performanceMetrics: {
+          averageCompletionTime: 3600,
+          successRate: 100,
+          disputeRate: 0,
+          totalEarnedLast30d: BigInt(0),
+          tasksCompletedLast30d: 0
+        }
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get agent reputation: ${error.message}`, 'QUERY_ERROR');
     }
@@ -585,7 +641,17 @@ export class RouterEscrowClient {
   async getOrganization(orgId: string): Promise<Organization> {
     try {
       // Note: In a real implementation, this would query the contract
-      return this.decodeOrganization({});
+      return {
+        id: orgId,
+        name: 'Test Organization',
+        description: 'Test organization description',
+        owner: 'erd1owner',
+        createdAt: Date.now(),
+        isActive: true,
+        memberCount: 1,
+        totalTasksCompleted: 0,
+        totalRevenue: BigInt(0)
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get organization: ${error.message}`, 'QUERY_ERROR');
     }
@@ -613,7 +679,16 @@ export class RouterEscrowClient {
   async getTaskStatistics(): Promise<TaskStatistics> {
     try {
       // Note: In a real implementation, this would query the contract
-      return this.decodeTaskStatistics({});
+      return {
+        totalTasks: 0,
+        completedTasks: 0,
+        cancelledTasks: 0,
+        disputedTasks: 0,
+        totalVolume: BigInt(0),
+        averageTaskValue: BigInt(0),
+        mostActiveAgent: null,
+        peakDailyTasks: 0
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get task statistics: ${error.message}`, 'QUERY_ERROR');
     }
@@ -622,7 +697,15 @@ export class RouterEscrowClient {
   async getAgentPerformance(agent: string): Promise<AgentPerformance> {
     try {
       // Note: In a real implementation, this would query the contract
-      return this.decodeAgentPerformance({});
+      return {
+        address: agent,
+        reputationScore: 100,
+        successRate: 100,
+        averageCompletionTime: 3600,
+        totalEarned: BigInt(0),
+        tasksCompletedLast30d: 0,
+        specializationCount: 0
+      };
     } catch (error: any) {
       throw new RouterEscrowError(`Failed to get agent performance: ${error.message}`, 'QUERY_ERROR');
     }
@@ -812,102 +895,5 @@ export class RouterEscrowClient {
       default:
         throw new RouterEscrowError(`Unknown task state: ${state}`, 'ENCODE_ERROR');
     }
-  }
-      reviewTimeout: null,
-      metadataUri: '',
-      resultUri: null,
-      state: TaskState.Open,
-      disputeMetadata: null,
-      ap2MandateHash: null,
-      x402SettlementRef: null,
-      agentReputationSnapshot: null,
-      priorityFee: null,
-      gasUsed: null,
-      completionTime: null
-    };
-  }
-
-  private decodeConfig(result: any): Config {
-    // In a real implementation, this would properly decode the ABI result
-    return {
-      owner: '',
-      treasury: '',
-      feeBps: 0,
-      resolver: null,
-      paused: false,
-      minReputation: 0,
-      maxTaskValue: null,
-      reputationDecayRate: 0,
-      emergencyPause: false,
-      upgradeProposalThreshold: 0,
-      maxConcurrentTasks: 0
-    };
-  }
-
-  private decodeAgentReputation(result: any): AgentReputation {
-    // In a real implementation, this would properly decode the ABI result
-    return {
-      address: '',
-      totalTasks: 0,
-      completedTasks: 0,
-      cancelledTasks: 0,
-      disputedTasks: 0,
-      totalEarned: BigInt(0),
-      reputationScore: 0,
-      averageRating: 0,
-      lastActive: 0,
-      createdAt: 0,
-      specialization: [],
-      verificationStatus: VerificationStatus.Unverified,
-      performanceMetrics: {
-        averageCompletionTime: 0,
-        successRate: 0,
-        disputeRate: 0,
-        totalEarnedLast30d: BigInt(0),
-        tasksCompletedLast30d: 0
-      }
-    };
-  }
-
-  private decodeOrganization(result: any): Organization {
-    // In a real implementation, this would properly decode the ABI result
-    return {
-      id: '',
-      name: '',
-      description: '',
-      owner: '',
-      createdAt: 0,
-      isActive: true,
-      memberCount: 0,
-      totalTasksCompleted: 0,
-      totalRevenue: BigInt(0)
-    };
-  }
-
-  private decodeTaskStatistics(result: any): TaskStatistics {
-    // In a real implementation, this would properly decode the ABI result
-    return {
-      totalTasks: 0,
-      completedTasks: 0,
-      cancelledTasks: 0,
-      disputedTasks: 0,
-      totalVolume: BigInt(0),
-      averageTaskValue: BigInt(0),
-      mostActiveAgent: null,
-      peakDailyTasks: 0
-    };
-  }
-
-  private decodeAgentPerformance(result: any): AgentPerformance {
-    // In a real implementation, this would properly decode the ABI result
-    return {
-      address: '',
-      reputationScore: 0,
-      successRate: 0,
-      averageCompletionTime: 0,
-      totalEarned: BigInt(0),
-      tasksCompletedLast30d: 0,
-      specializationCount: 0
-    };
   }
 }
