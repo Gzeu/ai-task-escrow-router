@@ -49,3 +49,9 @@ export type {
 
 // Export utility functions
 export { formatAmount, formatDate, formatTokenAmount, calculateReputationScore } from './types';
+
+// v0.4.0 - Webhook Notification System
+export { WebhookNotifier } from './notifications/WebhookNotifier';
+
+// v0.4.0 - DAO Governance
+export { GovernanceManager, Proposal, Vote, GovernanceConfig } from './governance/GovernanceManager';
