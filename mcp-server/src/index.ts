@@ -8,10 +8,7 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-
 import { z } from 'zod';
-
-import { AITaskEscrowClient } from './client.js';
 import { config } from './config.js';
 
 // Create MCP server
@@ -41,18 +38,6 @@ async function initializeClient() {
 }
 
 // Tool definitions
-const CreateTaskSchema = z.object({
-  metadataUri: z.string().describe('IPFS hash or URI for task metadata'),
-  deadline: z.number().optional().describe('Task deadline in seconds from now'),
-  reviewTimeout: z.number().optional().describe('Review timeout in seconds'),
-  ap2MandateHash: z.string().optional().describe('AP2 mandate hash if applicable'),
-  priorityFee: z.string().optional().describe('Priority fee in wei'),
-  paymentToken: z.string().describe('Token identifier (EGLD or ESDT token)'),
-  paymentAmount: z.string().describe('Payment amount as string'),
-  paymentNonce: z.number().optional().describe('Payment nonce for ESDT tokens'),
-  creatorAddress: z.string().describe('Creator wallet address'),
-});
-
 const SubmitResultSchema = z.object({
   taskId: z.string().describe('Task ID to submit result for'),
   resultUri: z.string().describe('IPFS hash or URI for task result'),
@@ -64,8 +49,46 @@ const ClaimPaymentSchema = z.object({
   claimantAddress: z.string().describe('Claimant wallet address'),
 });
 
-const GetTaskSchema = z.object({
-  taskId: z.string().describe('Task ID to retrieve'),
+const GetTasksPaginatedSchema = z.object({
+  creatorAddress: z.string().optional().describe('Filter by creator address'),
+  agentAddress: z.string().optional().describe('Filter by assigned agent address'),
+  state: z.string().optional().describe('Filter by task state'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z.number().optional().describe('Maximum number of tasks to return'),
+});
+
+const AcceptTaskSchema = z.object({
+  taskId: z.string().describe('Task ID to accept'),
+  agentAddress: z.string().describe('Agent address accepting the task'),
+});
+
+const FindBestTasksSchema = z.object({
+  agentAddress: z.string().describe('Agent address'),
+  skills: z.array(z.string()).describe('Array of skills to match'),
+  maxBudgetEGLD: z.number().optional().describe('Maximum budget in EGLD'),
+  limit: z.number().optional().describe('Maximum number of tasks to return'),
+});
+
+const GetTaskLifecycleSchema = z.object({
+  taskId: z.string().describe('Task ID to get lifecycle for'),
+});
+
+const RegisterAgentSkillsSchema = z.object({
+  agentAddress: z.string().describe('Agent address'),
+  skills: z.array(z.string()).describe('Array of skill identifiers'),
+  availabilityHours: z.number().optional().describe('Weekly availability hours'),
+});
+
+const CreateTaskSchema = z.object({
+  metadataUri: z.string().describe('IPFS hash or URI for task metadata'),
+  deadline: z.number().optional().describe('Task deadline in seconds from now'),
+  reviewTimeout: z.number().optional().describe('Review timeout in seconds'),
+  ap2MandateHash: z.string().optional().describe('AP2 mandate hash if applicable'),
+  priorityFee: z.string().optional().describe('Priority fee in wei'),
+  paymentToken: z.string().describe('Token identifier (EGLD or ESDT token)'),
+  paymentAmount: z.string().describe('Payment amount in wei'),
+  paymentNonce: z.number().optional().describe('Payment nonce for ESDT tokens'),
+  creatorAddress: z.string().describe('Creator wallet address'),
 });
 
 const GetTasksSchema = z.object({
@@ -80,49 +103,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: 'create_task',
-        description: 'Create a new AI task with payment',
+        name: 'get_tasks',
+        description: 'Get paginated list of tasks with optional filtering',
         inputSchema: {
           type: 'object',
           properties: {
-            metadataUri: {
-              type: 'string',
-              description: 'IPFS hash or URI for task metadata',
-            },
-            deadline: {
-              type: 'number',
-              description: 'Task deadline in seconds from now',
-            },
-            reviewTimeout: {
-              type: 'number',
-              description: 'Review timeout in seconds',
-            },
-            ap2MandateHash: {
-              type: 'string',
-              description: 'AP2 mandate hash if applicable',
-            },
-            priorityFee: {
-              type: 'string',
-              description: 'Priority fee in wei',
-            },
-            paymentToken: {
-              type: 'string',
-              description: 'Token identifier (EGLD or ESDT token)',
-            },
-            paymentAmount: {
-              type: 'string',
-              description: 'Payment amount as string',
-            },
-            paymentNonce: {
-              type: 'number',
-              description: 'Payment nonce for ESDT tokens',
-            },
             creatorAddress: {
               type: 'string',
-              description: 'Creator wallet address',
+              description: 'Filter by creator address',
+            },
+            agentAddress: {
+              type: 'string',
+              description: 'Filter by assigned agent address',
+            },
+            state: {
+              type: 'string',
+              description: 'Filter by task state',
+            },
+            offset: {
+              type: 'number',
+              description: 'Pagination offset',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum number of tasks to return',
             },
           },
-          required: ['metadataUri', 'paymentToken', 'paymentAmount', 'creatorAddress'],
         },
       },
       {
@@ -315,20 +321,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_tasks': {
-        const params = GetTasksSchema.parse(args);
+        const params = GetTasksPaginatedSchema.parse(args);
         
-        // Query tasks (simplified implementation)
-        const taskCount = await client.getTaskCount();
-        const tasks = [];
+        // Query tasks from indexer API
+        const response = await fetch(`${config.indexerUrl}/api/tasks?${new URLSearchParams({
+          ...(params.creatorAddress && { creatorAddress: params.creatorAddress }),
+          ...(params.agentAddress && { agentAddress: params.agentAddress }),
+          ...(params.state && { state: params.state }),
+          ...(params.offset && { offset: params.offset.toString() }),
+          ...(params.limit && { limit: params.limit.toString() })
+        })}`);
         
-        // For demo purposes, return a summary
+        if (!response.ok) {
+          throw new McpError(ErrorCode.InternalError, 'Failed to fetch tasks from indexer');
+        }
+        
+        const data = await response.json();
+        
         return {
           content: [
             {
               type: 'text',
-              text: `Tasks Summary:\n\nTotal Tasks: ${taskCount}\nFilters Applied:\n${params.creatorAddress ? `- Creator: ${params.creatorAddress}\n` : ''}${params.agentAddress ? `- Agent: ${params.agentAddress}\n` : ''}${params.state ? `- State: ${params.state}\n` : ''}${params.limit ? `- Limit: ${params.limit}\n` : ''}\n\nNote: This is a simplified implementation. In production, this would return detailed task information based on the filters provided.`,
-            },
-          ],
+              text: JSON.stringify({
+                tasks: data.tasks || [],
+                pagination: {
+                  offset: params.offset || 0,
+                  limit: params.limit || 50,
+                  total: data.total || data.tasks?.length || 0
+                },
+                filters: {
+                  creatorAddress: params.creatorAddress,
+                  agentAddress: params.agentAddress,
+                  state: params.state
+                }
+              }, null, 2)
+            }
+          ]
         };
       }
 
@@ -362,7 +390,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'get_supported_tokens': {
         // Query supported tokens
         const tokens = await client.getSupportedTokens();
-
+        
         return {
           content: [
             {
