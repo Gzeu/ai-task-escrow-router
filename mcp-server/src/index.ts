@@ -25,11 +25,11 @@ const server = new Server(
 );
 
 // Initialize AI Task Escrow client
-let client: AITaskEscrowClient;
+let client: any;
 
 async function initializeClient() {
   try {
-    client = new AITaskEscrowClient(config);
+    client = new (await import('./client.js')).AITaskEscrowClient(config);
     console.error('AI Task Escrow client initialized successfully');
   } catch (error) {
     console.error('Failed to initialize AI Task Escrow client:', error);
@@ -132,37 +132,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'accept_task',
+        description: 'Accept a task as an agent',
+        inputSchema: AcceptTaskSchema,
+      },
+      {
+        name: 'find_best_tasks',
+        description: 'Find best matching tasks for an agent',
+        inputSchema: FindBestTasksSchema,
+      },
+      {
+        name: 'get_task_lifecycle',
+        description: 'Get full lifecycle events for a task',
+        inputSchema: GetTaskLifecycleSchema,
+      },
+      {
+        name: 'register_agent_skills',
+        description: 'Register agent skills and availability',
+        inputSchema: RegisterAgentSkillsSchema,
+      },
+      {
         name: 'submit_result',
         description: 'Submit result for an accepted task',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            taskId: {
-              type: 'string',
-              description: 'Task ID to submit result for',
-            },
-            resultUri: {
-              type: 'string',
-              description: 'IPFS hash or URI for task result',
-            },
-            agentAddress: {
-              type: 'string',
-              description: 'Agent wallet address',
-            },
-          },
-          required: ['taskId', 'resultUri', 'agentAddress'],
-        },
+        inputSchema: SubmitResultSchema,
       },
       {
         name: 'claim_payment',
         description: 'Claim payment for completed or approved tasks',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            taskId: {
-              type: 'string',
-              description: 'Task ID to claim payment for',
-            },
+        inputSchema: ClaimPaymentSchema,
             claimantAddress: {
               type: 'string',
               description: 'Claimant wallet address',
