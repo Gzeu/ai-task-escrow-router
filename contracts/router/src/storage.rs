@@ -4,74 +4,81 @@ multiversx_sc::imports!();
 
 use crate::types::*;
 
-// Simplified storage using direct storage API
-pub fn config<M: ManagedTypeApi>() -> SingleValueMapper<Config<M>> {
-    SingleValueMapper::new("config")
-}
+// ── Core config ────────────────────────────────────────────────────────────
 
-pub fn task_counter<M: ManagedTypeApi>() -> SingleValueMapper<u64> {
-    SingleValueMapper::new("task_counter")
-}
+#[storage_mapper("config")]
+pub fn config<SA: StorageMapperApi>() -> SingleValueMapper<SA, Config<SA>>;
 
-pub fn tasks<M: ManagedTypeApi>(task_id: u64) -> SingleValueMapper<Task<M>> {
-    let key = format!("task_{}", task_id);
-    SingleValueMapper::new(&key)
-}
+#[storage_mapper("task_counter")]
+pub fn task_counter<SA: StorageMapperApi>() -> SingleValueMapper<SA, u64>;
 
-pub fn agent_reputation<M: ManagedTypeApi>(address: &ManagedAddress<M>) -> SingleValueMapper<AgentReputation<M>> {
-    let key = format!("reputation_{}", address.as_hex());
-    SingleValueMapper::new(&key)
-}
+// ── Task storage ────────────────────────────────────────────────────────────
 
-pub fn agent_active_tasks<M: ManagedTypeApi>(address: &ManagedAddress<M>) -> SingleValueMapper<u32> {
-    let key = format!("active_tasks_{}", address.as_hex());
-    SingleValueMapper::new(&key)
-}
+#[storage_mapper("tasks")]
+pub fn tasks<SA: StorageMapperApi>(task_id: u64) -> SingleValueMapper<SA, Task<SA>>;
 
-pub fn dispute_votes<M: ManagedTypeApi>(task_id: u64) -> SingleValueMapper<bool> {
-    let key = format!("dispute_votes_{}", task_id);
-    SingleValueMapper::new(&key)
-}
+// ── Agent storage ───────────────────────────────────────────────────────────
 
-pub fn batch_operations<M: ManagedTypeApi>() -> SingleValueMapper<BatchTaskOperation<M>> {
-    SingleValueMapper::new("batch_operations")
-}
+#[storage_mapper("agent_reputation")]
+pub fn agent_reputation<SA: StorageMapperApi>(
+    address: &ManagedAddress<SA>,
+) -> SingleValueMapper<SA, AgentReputation<SA>>;
 
-pub fn agent_specializations<M: ManagedTypeApi>(address: &ManagedAddress<M>) -> SingleValueMapper<ManagedBuffer<M>> {
-    let key = format!("specializations_{}", address.as_hex());
-    SingleValueMapper::new(&key)
-}
+#[storage_mapper("agent_active_tasks")]
+pub fn agent_active_tasks<SA: StorageMapperApi>(
+    address: &ManagedAddress<SA>,
+) -> SingleValueMapper<SA, u32>;
 
-// ESDT Multi-Token storage
-pub fn token_whitelist<M: ManagedTypeApi>() -> SingleValueMapper<ManagedVec<M, TokenWhitelistEntry<M>>> {
-    SingleValueMapper::new("token_whitelist")
-}
+#[storage_mapper("agent_stake")]
+pub fn agent_stake<SA: StorageMapperApi>(
+    address: &ManagedAddress<SA>,
+) -> SingleValueMapper<SA, BigUint<SA>>;
 
-pub fn agent_stake<M: ManagedTypeApi>(address: &ManagedAddress<M>) -> SingleValueMapper<BigUint<M>> {
-    let key = format!("stake_{}", address.as_hex());
-    SingleValueMapper::new(&key)
-}
+#[storage_mapper("agent_specializations")]
+pub fn agent_specializations<SA: StorageMapperApi>(
+    address: &ManagedAddress<SA>,
+) -> UnorderedSetMapper<SA, ManagedBuffer<SA>>;
 
-pub fn reputation_updates<M: ManagedTypeApi>() -> SingleValueMapper<ManagedVec<M, AgentReputationUpdate<M>>> {
-    SingleValueMapper::new("reputation_updates")
-}
+// ── Token whitelist ─────────────────────────────────────────────────────────
 
-// Organization storage
-pub fn organizations<M: ManagedTypeApi>() -> SingleValueMapper<ManagedVec<M, ManagedBuffer<M>>> {
-    SingleValueMapper::new("organizations")
-}
+#[storage_mapper("token_whitelist")]
+pub fn token_whitelist<SA: StorageMapperApi>(
+) -> SingleValueMapper<SA, ManagedVec<SA, TokenWhitelistEntry<SA>>>;
 
-pub fn organization_members<M: ManagedTypeApi>(org_id: &ManagedBuffer<M>) -> SingleValueMapper<ManagedVec<M, ManagedAddress<M>>> {
-    let key = format!("org_members_{}", org_id.as_hex());
-    SingleValueMapper::new(&key)
-}
+// ── Dispute ─────────────────────────────────────────────────────────────────
 
-// Analytics storage
-pub fn task_statistics<M: ManagedTypeApi>() -> SingleValueMapper<ManagedVec<M, ManagedBuffer<M>>> {
-    SingleValueMapper::new("task_statistics")
-}
+#[storage_mapper("dispute_resolved")]
+pub fn dispute_resolved<SA: StorageMapperApi>(task_id: u64) -> SingleValueMapper<SA, bool>;
 
-pub fn agent_performance<M: ManagedTypeApi>(address: &ManagedAddress<M>) -> SingleValueMapper<ManagedBuffer<M>> {
-    let key = format!("performance_{}", address.as_hex());
-    SingleValueMapper::new(&key)
-}
+// ── Organizations ────────────────────────────────────────────────────────────
+
+#[storage_mapper("org_members")]
+pub fn organization_members<SA: StorageMapperApi>(
+    org_id: &ManagedBuffer<SA>,
+) -> UnorderedSetMapper<SA, ManagedAddress<SA>>;
+
+#[storage_mapper("org_ids")]
+pub fn organization_ids<SA: StorageMapperApi>() -> UnorderedSetMapper<SA, ManagedBuffer<SA>>;
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+#[storage_mapper("total_tasks_created")]
+pub fn total_tasks_created<SA: StorageMapperApi>() -> SingleValueMapper<SA, u64>;
+
+#[storage_mapper("total_tasks_completed")]
+pub fn total_tasks_completed<SA: StorageMapperApi>() -> SingleValueMapper<SA, u64>;
+
+#[storage_mapper("total_tasks_disputed")]
+pub fn total_tasks_disputed<SA: StorageMapperApi>() -> SingleValueMapper<SA, u64>;
+
+#[storage_mapper("total_volume")]
+pub fn total_volume<SA: StorageMapperApi>() -> SingleValueMapper<SA, BigUint<SA>>;
+
+#[storage_mapper("total_fees_collected")]
+pub fn total_fees_collected<SA: StorageMapperApi>() -> SingleValueMapper<SA, BigUint<SA>>;
+
+// ── Reputation pending updates ───────────────────────────────────────────────
+
+#[storage_mapper("reputation_updates")]
+pub fn reputation_updates<SA: StorageMapperApi>(
+) -> SingleValueMapper<SA, ManagedVec<SA, AgentReputationUpdate<SA>>>;

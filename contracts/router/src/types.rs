@@ -48,6 +48,8 @@ pub struct Task<M: ManagedTypeApi> {
     pub protocol_fee_bps: u16,
     pub created_at: u64,
     pub accepted_at: Option<u64>,
+    /// Timestamp when agent submitted result — used for review_timeout calculation
+    pub submitted_at: Option<u64>,
     pub deadline: Option<u64>,
     pub review_timeout: Option<u64>,
     pub metadata_uri: ManagedBuffer<M>,
