@@ -3,134 +3,110 @@
 multiversx_sc::imports!();
 
 use crate::types::*;
-use crate::RouterEscrow;
 
-#[event("taskCreated")]
-pub fn task_created_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] _task_id: u64,
-    #[indexed] _creator: &ManagedAddress<M>,
-    #[indexed] _payment_amount: &BigUint<M>,
-    #[indexed] _payment_token: &EgldOrEsdtTokenIdentifier<M>,
-    _metadata_uri: &ManagedBuffer<M>,
-) {
-}
+/// All contract events in a dedicated module.
+/// mx-sdk-rs requires events to be defined inside a #[multiversx_sc::module] trait.
+#[multiversx_sc::module]
+pub trait EventsModule {
+    #[event("taskCreated")]
+    fn task_created_event(
+        &self,
+        #[indexed] task_id: u64,
+        #[indexed] creator: &ManagedAddress,
+        #[indexed] payment_amount: &BigUint,
+        #[indexed] payment_token: &EgldOrEsdtTokenIdentifier,
+        metadata_uri: &ManagedBuffer,
+    );
 
-#[event("taskAccepted")]
-pub fn task_accepted_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] agent: &ManagedAddress<M>,
-) {
-}
+    #[event("taskAccepted")]
+    fn task_accepted_event(
+        &self,
+        #[indexed] task_id: u64,
+        #[indexed] agent: &ManagedAddress,
+    );
 
-#[event("resultSubmitted")]
-pub fn result_submitted_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] result_uri: &ManagedBuffer<M>,
-) {
-}
+    #[event("resultSubmitted")]
+    fn result_submitted_event(
+        &self,
+        #[indexed] task_id: u64,
+        result_uri: &ManagedBuffer,
+    );
 
-#[event("taskApproved")]
-pub fn task_approved_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] agent: &ManagedAddress<M>,
-    #[indexed] agent_payment: &BigUint<M>,
-    #[indexed] payment_token: &EgldOrEsdtTokenIdentifier<M>,
-) {
-}
+    #[event("taskApproved")]
+    fn task_approved_event(
+        &self,
+        #[indexed] task_id: u64,
+        #[indexed] agent: &ManagedAddress,
+        #[indexed] agent_payment: &BigUint,
+        #[indexed] payment_token: &EgldOrEsdtTokenIdentifier,
+    );
 
-#[event("taskCancelled")]
-pub fn task_cancelled_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-) {
-}
+    #[event("taskCancelled")]
+    fn task_cancelled_event(
+        &self,
+        #[indexed] task_id: u64,
+    );
 
-#[event("disputeOpened")]
-pub fn dispute_opened_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] reason_uri: &ManagedBuffer<M>,
-) {
-}
+    #[event("taskRefunded")]
+    fn task_refunded_event(
+        &self,
+        #[indexed] task_id: u64,
+    );
 
-#[event("disputeResolved")]
-pub fn dispute_resolved_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-    #[indexed] resolution: &DisputeResolution,
-) {
-}
+    #[event("disputeOpened")]
+    fn dispute_opened_event(
+        &self,
+        #[indexed] task_id: u64,
+        reason_uri: &ManagedBuffer,
+    );
 
-#[event("taskRefunded")]
-pub fn task_refunded_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] task_id: u64,
-) {
-}
+    #[event("disputeResolved")]
+    fn dispute_resolved_event(
+        &self,
+        #[indexed] task_id: u64,
+        #[indexed] resolution: &DisputeResolution,
+    );
 
-#[event("batchOperationCompleted")]
-pub fn batch_operation_completed_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] operation_count: usize,
-    #[indexed] gas_used: u64,
-) {
-}
+    #[event("agentVerified")]
+    fn agent_verified_event(
+        &self,
+        #[indexed] agent: &ManagedAddress,
+        #[indexed] status: &VerificationStatus,
+    );
 
-#[event("upgradeProposed")]
-pub fn upgrade_proposed_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] proposal_hash: &ManagedBuffer<M>,
-    #[indexed] voting_period: u64,
-    #[indexed] execution_delay: u64,
-) {
-}
+    #[event("specializationAdded")]
+    fn specialization_added_event(
+        &self,
+        #[indexed] agent: &ManagedAddress,
+        specialization: &ManagedBuffer,
+    );
 
-#[event("agentVerified")]
-pub fn agent_verified_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] agent: &ManagedAddress<M>,
-    #[indexed] verification_status: &VerificationStatus,
-) {
-}
+    #[event("reputationUpdated")]
+    fn reputation_updated_event(
+        &self,
+        #[indexed] agent: &ManagedAddress,
+        #[indexed] new_score: u32,
+        #[indexed] old_score: u32,
+    );
 
-#[event("specializationAdded")]
-pub fn specialization_added_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] agent: &ManagedAddress<M>,
-    #[indexed] specialization: &ManagedBuffer<M>,
-) {
-}
+    #[event("contractInitialized")]
+    fn contract_initialized_event(
+        &self,
+        #[indexed] owner: &ManagedAddress,
+        #[indexed] treasury: &ManagedAddress,
+        #[indexed] fee_bps: u16,
+    );
 
-#[event("configChanged")]
-pub fn config_changed_event<M: ManagedTypeApi>(self: &RouterEscrow<M>) {
-}
+    #[event("configChanged")]
+    fn config_changed_event(
+        &self,
+        #[indexed] changed_by: &ManagedAddress,
+    );
 
-#[event("tokenWhitelistUpdated")]
-pub fn token_whitelist_updated_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] token_identifier: &EgldOrEsdtTokenIdentifier<M>,
-    #[indexed] is_enabled: bool,
-) {
-}
-
-#[event("reputationUpdated")]
-pub fn reputation_updated_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] agent: &ManagedAddress<M>,
-    #[indexed] new_score: u32,
-    #[indexed] old_score: u32,
-) {
-}
-
-#[event("contractInitialized")]
-pub fn contract_initialized_event<M: ManagedTypeApi>(
-    self: &RouterEscrow<M>,
-    #[indexed] owner: &ManagedAddress<M>,
-    #[indexed] treasury: &ManagedAddress<M>,
-    #[indexed] fee_bps: u16,
-) {
+    #[event("tokenWhitelistUpdated")]
+    fn token_whitelist_updated_event(
+        &self,
+        #[indexed] token_identifier: &EgldOrEsdtTokenIdentifier,
+        #[indexed] is_enabled: bool,
+    );
 }
