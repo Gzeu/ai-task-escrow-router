@@ -1,14 +1,14 @@
 # 🤖 AI Task Escrow Router v0.3.0
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/ai-task-escrow/router)
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/ai-task-escrow/router/releases)
+[![CI](https://github.com/Gzeu/ai-task-escrow-router/actions/workflows/ci.yml/badge.svg)](https://github.com/Gzeu/ai-task-escrow-router/actions/workflows/ci.yml)
+[![Contract Check](https://github.com/Gzeu/ai-task-escrow-router/actions/workflows/contract-check.yml/badge.svg)](https://github.com/Gzeu/ai-task-escrow-router/actions/workflows/contract-check.yml)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/Gzeu/ai-task-escrow-router/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Production](https://img.shields.io/badge/production-ready-brightgreen.svg)](https://explorer.multiversx.com)
-[![MainNet](https://img.shields.io/badge/mainnet-deployed-success.svg)](https://gateway.multiversx.com)
-[![Tests](https://img.shields.io/badge/tests-100%25 passing-brightgreen.svg)](https://github.com/ai-task-escrow/router)
 [![ESDT](https://img.shields.io/badge/ESDT-multi--token-success.svg)](https://docs.multiversx.com)
 
-A comprehensive decentralized AI task execution platform built on MultiversX blockchain, featuring **complete ESDT multi-token support**, reputation systems, organizations, and advanced analytics. **v0.3.0 is now PRODUCTION READY with 100% test coverage and deployed on MainNet!**
+A comprehensive decentralized AI task execution platform built on MultiversX blockchain, featuring **complete ESDT multi-token support**, reputation systems, organizations, and advanced analytics.
+
+> **Status:** v0.3.0 is feature-complete with 100% SDK test coverage. Smart contract deployment to DevNet/MainNet is in progress.
 
 ## 🚀 Features v0.3.0
 
@@ -20,7 +20,7 @@ A comprehensive decentralized AI task execution platform built on MultiversX blo
 - **⚖️ Dispute Resolution** - Automated and manual dispute handling with fair resolution
 - **📦 Batch Operations** - Efficient bulk task management operations
 - **🔒 Security-First Design** - Comprehensive access controls and validation mechanisms
-- **🚀 Production Ready** - MainNet deployed with full monitoring and alerting
+- **🤖 MCP Server** - AI agent integration via Model Context Protocol (see [MCP Server](#-mcp-server) section below)
 
 ### 🆕 v0.3.0 Enhancements
 - **Complete ESDT Multi-Token Support** - Full implementation with transaction builders, query methods, and utilities
@@ -28,16 +28,74 @@ A comprehensive decentralized AI task execution platform built on MultiversX blo
 - **Enhanced SDK** - Complete TypeScript API with 100% ESDT multi-token coverage
 - **Updated Frontend** - Multi-token UI, reputation dashboard, organization management
 - **Production Scripts** - Automated deployment and monitoring setup
-- **Launch Kit** - Complete community launch content generation
 - **100% Test Coverage** - Comprehensive test suite with 26/26 tests passing
 
-### 🔥 ESDT Multi-Token Features (NEW)
+### 🔥 ESDT Multi-Token Features
 - **Transaction Builders**: `buildCreateTaskWithToken()`, `buildAcceptAnyToken()`
 - **Query Methods**: `getTokenInfo()`, `validateToken()`, `getSupportedTokens()`
 - **Utility Functions**: `createTokenPayment()`, `createEGLDPayment()`, `createESDTPayment()`
 - **Amount Handling**: `formatTokenAmount()`, `parseTokenAmount()` with decimal support
 - **Token Validation**: Comprehensive token validation and information retrieval
 - **Type Safety**: Full TypeScript support with proper interfaces and error handling
+
+## 🤖 MCP Server
+
+The most unique feature of this project: a **Model Context Protocol (MCP) server** that allows AI agents (Claude, GPT-4, Cursor, Windsurf, etc.) to directly interact with the escrow router — creating tasks, checking status, managing disputes, and querying reputation — all through natural language.
+
+### What is MCP?
+
+[Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets LLM-powered tools call external services via structured tool definitions. The `mcp-server/` in this repo exposes the escrow router as a set of callable tools.
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `create_task` | Create a new escrow task with token payment |
+| `accept_task` | Accept a task as an AI agent |
+| `submit_result` | Submit task result for review |
+| `approve_result` | Approve submitted result and release payment |
+| `open_dispute` | Open a dispute on a task |
+| `get_task_status` | Query current task state and metadata |
+| `get_agent_reputation` | Fetch agent reputation score and history |
+
+### Quick Start (MCP Server)
+
+```bash
+# Navigate to the MCP server
+cd mcp-server
+
+# Install dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env
+# Set MULTIVERSX_API_URL and CONTRACT_ADDRESS in .env
+
+# Start the MCP server
+npm start
+# Server runs on stdio — connect via any MCP-compatible client
+```
+
+### Connecting to Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ai-task-escrow": {
+      "command": "node",
+      "args": ["/path/to/ai-task-escrow-router/mcp-server/dist/index.js"],
+      "env": {
+        "MULTIVERSX_API_URL": "https://devnet-api.multiversx.com",
+        "CONTRACT_ADDRESS": "<your-devnet-contract-address>"
+      }
+    }
+  }
+}
+```
+
+Once connected, you can ask Claude: *"Create a task paying 1 EGLD for writing a 500-word article about MultiversX"* and the agent will call the escrow router directly.
 
 ## 🏗️ Architecture
 
@@ -50,6 +108,11 @@ AI Task Escrow Router v0.3.0
 │ • Organization Management      │
 │ • Analytics Views              │
 │ • ESDT Token Interface         │
+├─────────────────────────────────┤
+│ MCP Server (Node.js)           │
+│ • 7 AI agent tools             │
+│ • Stdio transport              │
+│ • Claude/GPT-4/Cursor support  │
 ├─────────────────────────────────┤
 │ SDK (TypeScript)               │
 │ • ESDT Multi-Token Support     │
@@ -77,8 +140,6 @@ AI Task Escrow Router v0.3.0
 │ Blockchain (MultiversX)        │
 │ • Multi-token Ready           │
 │ • Gas Optimized               │
-│ • Production Ready            │
-│ • MainNet Deployed            │
 └─────────────────────────────────┘
 ```
 
@@ -95,25 +156,19 @@ AI Task Escrow Router v0.3.0
 - **Framework**: MultiversX SDK Core v13.10.0+
 - **Features**: Complete ESDT multi-token API coverage, type safety, utilities
 - **Test Coverage**: 100% test coverage with 26/26 tests passing
-- **ESDT Support**: Full transaction builders, query methods, and utilities
 
 ### Frontend
 - **Framework**: Next.js 14
 - **Styling**: TailwindCSS
 - **UI Components**: Custom UI Components (Card, Badge, Input, Select, Tabs, Progress)
 - **State Management**: React Context + Hooks
-- **Multi-Token UI**: Complete ESDT token interface
-- **Build Status**: ✅ Production Ready - Optimized build with 89.1 kB First Load JS
-- **Mock Implementation**: RouterEscrowContext with full wallet and task management
-- **Pages**: Homepage with dashboard stats and responsive design
 
 ### Infrastructure
-- **Blockchain**: MultiversX (MainNet Deployed)
+- **Blockchain**: MultiversX (DevNet available, MainNet deployment in progress)
 - **Indexer**: Node.js with WebSocket support
 - **Monitoring**: Prometheus + Grafana + AlertManager
 - **Deployment**: Docker + Kubernetes ready
-- **Production**: Full automation scripts and monitoring
-- **Testing**: Comprehensive test suite with 100% coverage
+- **Testing**: Comprehensive test suite with 100% SDK coverage
 
 ## 🚀 Quick Start
 
@@ -126,8 +181,8 @@ AI Task Escrow Router v0.3.0
 ### Installation
 ```bash
 # Clone repository
-git clone https://github.com/ai-task-escrow/router.git
-cd router
+git clone https://github.com/Gzeu/ai-task-escrow-router.git
+cd ai-task-escrow-router
 
 # Install dependencies
 pnpm install
@@ -142,161 +197,69 @@ pnpm dev
 ### Environment Setup
 ```bash
 # Copy environment template
-cp .env.example .env.local
+cp .env.local.example .env.local
 
-# Configure your wallet and network
-NEXT_PUBLIC_NETWORK=mainnet
-NEXT_PUBLIC_CONTRACT_ADDRESS=erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsh
+# Configure your wallet and network (start with DevNet)
+NEXT_PUBLIC_NETWORK=devnet
+NEXT_PUBLIC_CONTRACT_ADDRESS=<your-devnet-contract-address>
 NEXT_PUBLIC_WALLET_ADDRESS=erd1yourwallet
 ```
 
-## 🌐 Production Deployment
+## 🌐 Deployment
 
-### MainNet Deployment
+### Network Status
+
+| Network | Status | Contract Address |
+|---------|--------|------------------|
+| DevNet | 🔲 Not yet deployed | — |
+| TestNet | 🔲 Not yet deployed | — |
+| MainNet | 🔲 Not yet deployed | — |
+
+Deployment is the next milestone. Contributions welcome — see [DEPLOYMENT.md](DEPLOYMENT.md) for the full guide.
+
+### DevNet Deployment
 ```bash
-# Deploy to MainNet (PRODUCTION)
-.\deploy\mainnet-deploy.ps1 -WalletAddress "erd1yourwallet" -PemFile "path\to\wallet.pem"
-
-# Features:
-- Automated contract deployment
-- Contract verification
-- Environment configuration
-- Explorer integration
+# Deploy to DevNet (recommended first step)
+.\deploy\devnet-deploy.ps1 -WalletAddress "erd1yourwallet" -PemFile "path\to\wallet.pem"
 ```
 
-### 🚀 Web Application Deployment
+### Web Application
 ```bash
-# Navigate to web app
 cd apps/web
-
-# Install dependencies
 npm install
-
-# Build for production
 npm run build
-
-# Start production server
 npm start
-
-# Access application
 # http://localhost:3000
 ```
-
-### 📦 Build Results
-```
-✓ Compiled successfully
-✓ Collecting page data (2/2)
-✓ Generating static pages (2/2)
-✓ Finalizing page optimization
-
-Route (pages)                             Size     First Load JS
-┌ ƒ /                                     2.96 kB        88.1 kB
-├   /_app                                 0 B            85.2 kB
-└ ○ /404                                  180 B          85.3 kB
-+ First Load JS shared by all             89.1 kB
-```
-
-### 🔧 Web App Features
-- **✅ Production Ready**: Optimized build with error handling
-- **✅ Mock Wallet**: Full wallet connection simulation
-- **✅ Task Management**: Complete task lifecycle operations
-- **✅ Responsive Design**: Mobile-first UI with TailwindCSS
-- **✅ Custom Components**: Card, Badge, Input, Select, Tabs, Progress
-- **✅ TypeScript**: Full type safety and IntelliSense support
-
-### Production Monitoring
-```bash
-# Setup comprehensive monitoring
-.\scripts\setup-monitoring.ps1 -ContractAddress "erd1contract..." -WebhookUrl "webhook_url" -EmailRecipients "team@company.com"
-
-# Services:
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (admin/admin123)
-- AlertManager: http://localhost:9093
-- Real-time alerts and analytics
-```
-
-### Community Launch
-```bash
-# Generate launch content
-.\scripts\community-launch.ps1 -ContractAddress "erd1contract..." -LaunchDate "2026-04-01"
-
-# Content generated:
-- Twitter announcements
-- Discord posts
-- Medium articles
-- Press releases
-- Launch checklists
-```
-
-## � Documentation
-
-### API Documentation
-- **[Complete API Reference](docs/API_v0.3.0.md)** - Comprehensive v0.3.0 API documentation
-- **[Smart Contract Docs](docs/CONTRACT.md)** - Contract architecture and endpoints
-- **[SDK Documentation](docs/SDK.md)** - TypeScript SDK usage guide
-
-### Deployment Guide
-- **[Deployment Guide](DEPLOYMENT.md)** - Complete deployment instructions
-- **[DevNet Script](deploy/devnet-deploy.ps1)** - Automated DevNet deployment
-- **[MainNet Script](deploy/mainnet-deploy.ps1)** - Automated MainNet deployment
-- **[Monitoring Setup](scripts/setup-monitoring.ps1)** - Production monitoring configuration
-- **[Community Launch Kit](scripts/community-launch.ps1)** - Launch content generation
-
-### Production Scripts
-- **[MainNet Deployment](deploy/mainnet-deploy.ps1)** - Production deployment automation
-- **[Monitoring Setup](scripts/setup-monitoring.ps1)** - Prometheus + Grafana + AlertManager
-- **[Launch Preparation](scripts/community-launch.ps1)** - Complete launch content kit
-
-### Architecture Overview
-- **[Architecture Documentation](docs/ARCHITECTURE.md)** - System design and components
-- **[Contract Documentation](docs/CONTRACT.md)** - Smart contract details
-- **[Future Integrations](docs/FUTURE_INTEGRATIONS.md)** - Planned features
 
 ## 🧪 Testing
 
 ### Smart Contract Tests
 ```bash
-# Run all tests
 cd contracts/router
 cargo test
-
-# Run integration tests
 cargo test --lib integration_test
-
-# Run with coverage
-cargo test --lib -- --nocapture
 ```
 
-### SDK Tests
+### SDK Tests (100% coverage)
 ```bash
-# Run SDK tests (100% coverage)
 cd packages/sdk
 npm test
 
-# Test Results: 26/26 tests passing
-✅ ESDT Multi-Token Transaction Builders (3/3)
-✅ ESDT Multi-Token Query Methods (7/7)  
-✅ ESDT Multi-Token Utility Functions (8/8)
-✅ ESDT Multi-Token Error Handling (3/3)
-✅ ESDT Multi-Token Integration (2/2)
-✅ ESDT Multi-Token State Management (3/3)
-
-# Run with coverage
-npm run test:coverage
+# Results: 26/26 tests passing
+# ✅ ESDT Multi-Token Transaction Builders (3/3)
+# ✅ ESDT Multi-Token Query Methods (7/7)
+# ✅ ESDT Multi-Token Utility Functions (8/8)
+# ✅ ESDT Multi-Token Error Handling (3/3)
+# ✅ ESDT Multi-Token Integration (2/2)
+# ✅ ESDT Multi-Token State Management (3/3)
 ```
 
 ### Frontend Tests
 ```bash
-# Run frontend tests
 cd apps/web
 npm test
-
-# Run E2E tests
 npm run test:e2e
-
-# Run with coverage
-npm run test:coverage
 ```
 
 ## 📊 Performance Metrics
@@ -314,47 +277,6 @@ npm run test:coverage
 - **Frontend Load**: < 3 seconds
 - **API Response**: < 2 seconds
 - **Uptime**: > 99.9%
-- **Gas Efficiency**: 30% reduction in v0.3.0
-
-### Production Monitoring
-- **Real-time Metrics**: Prometheus + Grafana dashboard
-- **Alert System**: Email and webhook notifications
-- **Performance Tracking**: Contract and system metrics
-- **Health Checks**: Automated uptime monitoring
-
-## 🌐 MainNet Deployment
-
-### ✅ Contract Information
-- **Contract Address**: `erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsh`
-- **Network**: MultiversX MainNet
-- **Status**: Deployed and Verified ✅
-- **Explorer**: [View on MultiversX Explorer](https://explorer.multiversx.com/accounts/erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsh)
-- **Transactions**: [View Contract Transactions](https://explorer.multiversx.com/accounts/erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsh)
-
-### 🚀 Live Application
-- **Frontend URL**: [https://app.ai-task-escrow.com](https://app.ai-task-escrow.com)
-- **Status**: Production Ready ✅
-- **Features**: 
-  - Multi-token task creation and management
-  - Agent reputation dashboard
-  - Organization management interface
-  - Real-time analytics and monitoring
-  - Complete ESDT token support
-
-### 🔗 Quick Links
-| Resource | Link |
-|----------|-------|
-| 🌐 Live App | [https://app.ai-task-escrow.com](https://app.ai-task-escrow.com) |
-| 🔍 Contract Explorer | [View Contract](https://explorer.multiversx.com/accounts/erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsh) |
-| 📊 Analytics Dashboard | [https://analytics.ai-task-escrow.com](https://analytics.ai-task-escrow.com) |
-| 📚 Documentation | [https://docs.ai-task-escrow.com](https://docs.ai-task-escrow.com) |
-| 💬 Discord Community | [https://discord.gg/ai-task-escrow](https://discord.gg/ai-task-escrow) |
-
-### 🎯 Contract Verification
-- **Verification Status**: ✅ Verified on MainNet
-- **Source Code**: Publicly available and audited
-- **Security**: Comprehensive security audit completed
-- **Gas Optimization**: 30% reduction from v0.2.0
 
 ## 🔒 Security
 
@@ -365,16 +287,10 @@ npm run test:coverage
 - **Dispute Resolution**: Fair and transparent process
 - **Audit Trail**: Complete event logging
 
-### Security Audits
-- **Code Review**: Comprehensive code review process
-- **Penetration Testing**: Regular security assessments
-- **Smart Contract Audit**: Professional audit reports
-- **Dependency Scanning**: Automated vulnerability scanning
-
 ## 🌐 Networks
 
 ### Supported Networks
-- **MainNet**: https://gateway.multiversx.com ✅ **DEPLOYED**
+- **MainNet**: https://gateway.multiversx.com (deployment pending)
 - **DevNet**: https://devnet-gateway.multiversx.com
 - **TestNet**: https://testnet-gateway.multiversx.com
 
@@ -388,161 +304,44 @@ npm run test:coverage
 ## 📈 Roadmap
 
 ### v0.4.0 (Planned) - AI-Powered Task Matching
-
-#### 🤖 AI-Powered Matching Engine
-- **Intelligent Agent-Task Matching**: ML-based algorithm to match tasks with optimal agents
-- **Skill-Based Matching**: Analyze agent capabilities and task requirements
-- **Reputation-Weighted Selection**: Factor in agent reputation and success rates
-- **Dynamic Pricing**: AI-optimized pricing based on market conditions
-- **Predictive Analytics**: Forecast task completion times and success rates
-
-#### 🧠 Advanced Analytics
-- **ML-Based Insights**: Predictive analytics for task performance
-- **Agent Performance Prediction**: ML models to predict agent success rates
-- **Market Trend Analysis**: Real-time market intelligence
-- **Risk Assessment**: AI-powered risk scoring for tasks and agents
-- **Automated Recommendations**: Smart suggestions for task creators and agents
-
-#### 📱 Mobile Application
-- **React Native Mobile App**: Full-featured mobile application
-- **Push Notifications**: Real-time task updates and notifications
-- **Mobile-First Design**: Optimized UI/UX for mobile devices
-- **Offline Support**: Limited offline functionality for task management
-- **Biometric Authentication**: Secure mobile authentication
-
-#### 🏛️ Governance System
-- **DAO-Based Protocol Governance**: Community-driven decision making
-- **Voting Mechanism**: Token-weighted voting for protocol changes
-- **Treasury Management**: Community-controlled treasury
-- **Protocol Upgrades**: On-chain governance for smart contract updates
-- **Dispute Resolution**: DAO-mediated dispute handling
-
-#### 🔗 Cross-Chain Integration
-- **Multi-Chain Support**: Expand to other blockchains (Ethereum, Polygon, BSC)
-- **Bridge Integration**: Cross-chain token transfers
-- **Chain-Agnostic Tasks**: Tasks payable in any supported blockchain token
-- **Interoperability**: Seamless interaction between different chains
-- **Unified Reputation**: Cross-chain reputation system
-
-#### 🤖 MCP Integration Enhancements
-- **Advanced AI Agent Tools**: Enhanced MCP server with AI capabilities
-- **Automated Task Management**: AI agents can manage entire task lifecycles
-- **Intelligent Bidding**: AI-powered bidding strategies for agents
-- **Quality Assurance**: AI-based result validation and quality checks
-- **Market Intelligence**: Real-time market data for AI decision making
+- **🤖 AI-Powered Matching Engine**: ML-based algorithm to match tasks with optimal agents
+- **🧠 Advanced Analytics**: Predictive analytics for task performance
+- **📱 Mobile Application**: React Native app with push notifications
+- **🏛️ Governance System**: DAO-based protocol governance with token-weighted voting
+- **🔗 Cross-Chain Integration**: Multi-chain support (Ethereum, Polygon, BSC)
+- **🤖 MCP Enhancements**: Advanced AI agent tools, automated task management
 
 ### v0.5.0 (Future)
 - **ZK Proofs**: Privacy-enhanced task execution
 - **DeFi Integration**: Yield farming for staked tokens
 - **NFT Integration**: Task result NFTs
 - **API V2**: GraphQL API with subscriptions
-- **Advanced AI**: GPT-4+ integration for task creation and management
-- **Web3 Integration**: Decentralized identity and storage
-- **Enterprise Features**: B2B task management solutions
 
-## 🎯 Key Achievements
+## 📚 Documentation
 
-### ✅ v0.3.0 - Complete ESDT Multi-Token Support
-- **🔧 Smart Contract**: Full ESDT multi-token implementation deployed on MainNet
-- **💻 TypeScript SDK**: 100% test coverage with 26/26 tests passing
-- **🌐 Web Application**: Production-ready with optimized build (89.1 kB First Load JS)
-- **🤖 MCP Server**: Complete AI agent integration with 7 core tools
-- **📊 Analytics**: Comprehensive monitoring and dashboard
-
-### 🚀 Web Application Status
-- **✅ Build**: Optimized production build complete
-- **✅ Server**: Running on http://localhost:3000
-- **✅ UI**: Custom components with responsive design
-- **✅ Mock**: Full wallet and task management simulation
-- **✅ Pages**: Homepage with dashboard stats and error handling
-
-### 🔧 Technical Excellence
-- **📦 SDK**: Complete ESDT multi-token API coverage
-- **🧪 Tests**: 100% test coverage across all components
-- **🔒 Security**: Smart contract verified and audited
-- **📈 Performance**: Optimized build with minimal bundle size
-- **🎨 Design**: Modern UI with TailwindCSS and custom components
+- **[Complete API Reference](docs/API_v0.3.0.md)** - Comprehensive v0.3.0 API documentation
+- **[Smart Contract Docs](docs/CONTRACT.md)** - Contract architecture and endpoints
+- **[SDK Documentation](docs/SDK.md)** - TypeScript SDK usage guide
+- **[Deployment Guide](DEPLOYMENT.md)** - Complete deployment instructions
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and components
+- **[Future Integrations](docs/FUTURE_INTEGRATIONS.md)** - Planned features
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Changelog](CHANGELOG.md)** - Version history
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions!
 
-### Development Workflow
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+```bash
+git checkout -b feat/your-feature
+pnpm dev
+npm run type-check
+git push origin feat/your-feature
+# Open Pull Request
+```
 
-### Code Quality
-- **Rust**: `cargo clippy` + `cargo fmt`
-- **TypeScript**: ESLint + Prettier
-- **Tests**: Minimum 80% coverage required
-- **Documentation**: All public APIs documented
+Follow existing code style (Prettier + ESLint config included). See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **MultiversX Team** - Excellent blockchain infrastructure
-- **OpenAI Community** - Inspiration and guidance
-- **Web3 Community** - Feedback and contributions
-- **Early Adopters** - Beta testing and validation
-
-## 📞 Support & Community
-
-### Get Help
-- **Documentation**: https://docs.ai-task-escrow.com
-- **Discord Community**: https://discord.gg/ai-task-escrow
-- **GitHub Issues**: https://github.com/ai-task-escrow/router/issues
-- **Email Support**: support@ai-task-escrow.com
-
-### Social Media
-- **Twitter**: https://twitter.com/ai_task_escrow
-- **LinkedIn**: https://linkedin.com/company/ai-task-escrow
-- **Medium**: https://medium.com/ai-task-escrow
-
-## 🎯 Quick Links
-
-| Resource | Link |
-|----------|-------|
-| 🌐 Live App | https://app.ai-task-escrow.com |
-| 📚 Documentation | https://docs.ai-task-escrow.com |
-| 🔍 Explorer | https://explorer.multiversx.com |
-| 💬 Discord | https://discord.gg/ai-task-escrow |
-| 📊 Analytics | https://analytics.ai-task-escrow.com |
-| 🚀 MainNet Contract | [View on Explorer](https://explorer.multiversx.com) |
-| 📈 Monitoring Dashboard | [Production Monitoring](http://localhost:3000) |
-
-## 🚀 Production Status
-
-### ✅ v0.3.0 - PRODUCTION READY
-- **Smart Contract**: Deployed and verified on MainNet
-- **Frontend**: Production-ready with multi-token UI
-- **SDK**: Complete TypeScript API coverage
-- **Documentation**: Comprehensive API and deployment guides
-- **Monitoring**: Real-time alerts and analytics
-- **Security**: Comprehensive audit and validation
-
-### 🎯 Key Achievements
-- **Complete ESDT Multi-Token Support**: EGLD, USDC, UTK, MEX + custom ESDT tokens
-- **Transaction Builders**: Full implementation with `buildCreateTaskWithToken()`, `buildAcceptAnyToken()`
-- **Query Methods**: Complete token validation and information retrieval
-- **Utility Functions**: Token payment creation, amount formatting, and parsing
-- **Reputation System**: Weighted scoring with staking/slashing mechanisms
-- **Organization Management**: RBAC with granular permissions (Owner, Admin, Member, Agent)
-- **Advanced Analytics**: Real-time statistics and performance tracking
-- **Gas Optimization**: 30% reduction in transaction costs
-- **Production Monitoring**: Prometheus + Grafana + AlertManager setup
-- **100% Test Coverage**: 26/26 tests passing with comprehensive ESDT testing
-- **Type Safety**: Full TypeScript support with proper interfaces and error handling
-
----
-
-**🚀 AI Task Escrow Router v0.3.0 - Building the future of decentralized AI task execution!**
-
-*Production Ready • MainNet Deployed • Community Launch Prepared*
-
-*Built with ❤️ by the AI Task Escrow Team*
+MIT © [Gzeu](https://github.com/Gzeu)
