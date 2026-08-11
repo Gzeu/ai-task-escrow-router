@@ -17,8 +17,8 @@ fi
 
 echo "📦 Building contract for WASM..."
 
-# Build using cargo directly for better control
-cargo build --release --target wasm32-unknown-unknown
+# Build using MX SDK (sc-meta) for WASM optimization, ABI generation, and metadata
+sc-meta all build
 
 if [ $? -eq 0 ]; then
     echo "✅ Contract built successfully!"
