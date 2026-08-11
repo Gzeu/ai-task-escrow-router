@@ -39,6 +39,7 @@ pub trait EventsModule {
         #[indexed] agent: &ManagedAddress,
         #[indexed] agent_payment: &BigUint,
         #[indexed] payment_token: &EgldOrEsdtTokenIdentifier,
+        #[indexed] protocol_fee: &BigUint,
     );
 
     #[event("taskCancelled")]
