@@ -7,12 +7,10 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[dependencies.multiversx-sc]
-version = "0.52.0"
+[dependencies]
+multiversx-sc = "0.66.1"
+multiversx-sc-derive = "0.66.1"
+multiversx-sc-modules = "0.66.1"
 
-[dev-dependencies.multiversx-sc-scenario]
-version = "0.52.0"
-
-[[bin]]
-name = "router-escrow-meta"
-path = "meta/main.rs"
+[dev-dependencies]
+multiversx-sc-scenario = "0.66.1"

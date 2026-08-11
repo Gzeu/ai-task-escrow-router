@@ -1,0 +1,51 @@
+{
+  "type": "https://multiversx.com/standards/mx-8004#registration-v1",
+  "name": "AI Task Escrow Router",
+  "description": "End-to-end escrow & settlement protocol for AI-mediated task execution",
+  "version": "0.5.0",
+  "active": true,
+  "services": [
+    {
+      "name": "MCP",
+      "endpoint": "https://your-domain.com/mcp",
+      "version": "2026-07-28"
+    },
+    {
+      "name": "A2A",
+      "endpoint": "https://your-domain.com/.well-known/agent-card.json"
+    }
+  ],
+  "oasf": {
+    "schemaVersion": "0.8.0",
+    "skills": [
+      {
+        "category": "Coordination",
+        "items": [
+          "task_routing",
+          "escrow_management"
+        ]
+      }
+    ],
+    "domains": [
+      {
+        "category": "Finance and Business",
+        "items": [
+          "defi"
+        ]
+      }
+    ],
+    "adoption": {
+      "status": "experimental",
+      "metrics": {
+        "contracts_using": 3,
+        "active_agents": 12
+      }
+    }
+  },
+  "x402Support": true,
+  "standards_compliance": {
+    "mx_8004_standard": true,
+    "mx_address_standard": true,
+    "escrow_standard": true
+  }
+}

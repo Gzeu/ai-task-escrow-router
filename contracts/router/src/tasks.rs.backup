@@ -76,6 +76,11 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         reentrancy_guard::<M>().set(&false);
     }
 
+    /// Validates that an address is not the zero address
+    fn validate_non_zero_address(&self, address: &ManagedAddress<M>, param_name: &str) {
+        require!(*address != ManagedAddress::zero(), &format!("{} cannot be zero address", param_name));
+    }
+
     #[payable("*")]
     #[endpoint(createTask)]
     fn create_task(
@@ -271,7 +276,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
     #[endpoint(cancelTask)]
     fn cancel_task(&self, task_id: u64) {
         self.require_not_paused();
-        self.require_not_reentrant();
 
         let mut task = tasks::<M>(task_id).get();
         let caller = self.blockchain().get_caller();
@@ -279,11 +283,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
         require!(task.state == TaskState::Open, "Only open tasks can be cancelled");
         require!(task.creator == caller, "Only creator can cancel task");
 
-        // EFFECTS - Update state BEFORE external interaction
-        task.state = TaskState::Cancelled;
-        tasks::<M>(task_id).set(&task);
-
-        // INTERACTION - External call LAST
         self.send().direct(
             &task.creator,
             &task.payment_token,
@@ -291,7 +290,9 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             &task.payment_amount,
         );
 
-        task_cancelled_event(self, task_id, &caller, &task.payment_amount);
+        task.state = TaskState::Cancelled;
+        tasks::<M>(task_id).set(&task);
+        task_cancelled_event(self, task_id);
     }
 
     #[endpoint(openDispute)]
@@ -440,7 +441,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
     #[endpoint(refundExpiredTask)]
     fn refund_expired_task(&self, task_id: u64) {
         self.require_not_paused();
-        self.require_not_reentrant();
 
         let mut task = tasks::<M>(task_id).get();
 
@@ -470,11 +470,6 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             agent_reputation::<M>(agent).set(&rep);
         }
 
-        // EFFECTS - Update state BEFORE external interaction
-        task.state = TaskState::Refunded;
-        tasks::<M>(task_id).set(&task);
-
-        // INTERACTION - External call LAST
         self.send().direct(
             &task.creator,
             &task.payment_token,
@@ -482,7 +477,9 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
             &task.payment_amount,
         );
 
-        task_refunded_event(self, task_id, &task.creator, &task.payment_amount);
+        task.state = TaskState::Refunded;
+        tasks::<M>(task_id).set(&task);
+        task_refunded_event(self, task_id);
     }
 
     #[endpoint(claimApproval)]
@@ -596,47 +593,33 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
 
     /// Internal helper: release escrow payment to agent with protocol fee split.
     /// Reusable by approveTask, claimApproval, batchApprove.
-    /// Follows Checks-Effects-Interactions pattern with reentrancy guard.
     fn do_release_payment(&self, task_id: u64) {
-        // Reentrancy guard
-        self.require_not_reentrant();
-        self.non_reentrant_start();
-
-        // CHECKS
         let config = config::<M>().get();
         let task = tasks::<M>(task_id).get();
-        require!(task.state == TaskState::Submitted, "Task not in submitted state");
 
-        // Use checked arithmetic to prevent overflow/underflow
-        let payment_amount = &task.payment_amount;
-        let fee_bps = BigUint::from(config.fee_bps as u64);
+        let protocol_fee =
+            &task.payment_amount * BigUint::from(config.fee_bps as u64) / BigUint::from(10000u64);
+        let agent_payment = &task.payment_amount - &protocol_fee;
 
-        // Calculate protocol fee with overflow protection: (amount * bps) / 10000
-        let fee_numerator = payment_amount * &fee_bps;
-        let protocol_fee = &fee_numerator / BigUint::from(10000u64);
+        self.send().direct(
+            &config.treasury,
+            &task.payment_token,
+            task.payment_nonce,
+            &protocol_fee,
+        );
 
-        // Calculate agent payment with underflow protection
-        let agent_payment = match payment_amount.checked_sub(&protocol_fee) {
-            Some(result) => result,
-            None => {
-                self.non_reentrant_end();
-                require!(false, "Protocol fee exceeds payment amount");
-            }
-        };
-
-        // EFFECTS - Update all state BEFORE external interactions
         if let Some(ref agent) = task.assigned_agent {
-            // Update agent reputation
+            self.send().direct(
+                agent,
+                &task.payment_token,
+                task.payment_nonce,
+                &agent_payment,
+            );
+
             let mut rep = agent_reputation::<M>(agent).get();
             rep.completed_tasks += 1;
             rep.total_tasks += 1;
-            rep.total_earned = match rep.total_earned.checked_add(&agent_payment) {
-                Some(result) => result,
-                None => {
-                    self.non_reentrant_end();
-                    require!(false, "Reputation total_earned overflow");
-                }
-            };
+            rep.total_earned += &agent_payment;
             rep.last_active = self.blockchain().get_block_timestamp();
             agent_reputation::<M>(agent).set(&rep);
 
@@ -646,60 +629,13 @@ impl<M: ManagedTypeApi> TaskEndpoints<M> for RouterEscrow<M> {
                 agent_active_tasks::<M>(agent).set(&(active - 1));
             }
 
-            // Update global analytics with checked arithmetic
+            // Update global analytics
             let vol = total_volume::<M>().get();
-            let new_vol = match vol.checked_add(&agent_payment) {
-                Some(result) => result,
-                None => {
-                    self.non_reentrant_end();
-                    require!(false, "Total volume overflow");
-                }
-            };
-            total_volume::<M>().set(&new_vol);
-
+            total_volume::<M>().set(&(vol + &agent_payment));
             let fees = total_fees_collected::<M>().get();
-            let new_fees = match fees.checked_add(&protocol_fee) {
-                Some(result) => result,
-                None => {
-                    self.non_reentrant_end();
-                    require!(false, "Total fees overflow");
-                }
-            };
-            total_fees_collected::<M>().set(&new_fees);
+            total_fees_collected::<M>().set(&(fees + &protocol_fee));
+
+            task_approved_event(self, task_id, agent, &agent_payment, &task.payment_token);
         }
-
-        // Update task state
-        let mut task = tasks::<M>(task_id).get();
-        task.state = TaskState::Approved;
-        task.completion_time = Some(self.blockchain().get_block_timestamp());
-        tasks::<M>(task_id).set(&task);
-
-        // Update global counter with overflow check
-        let total = total_tasks_completed::<M>().get();
-        total_tasks_completed::<M>().set(&(total + 1));
-
-        // INTERACTIONS - External calls LAST (after all state updates)
-        // Send protocol fee to treasury
-        self.send().direct(
-            &config.treasury,
-            &task.payment_token,
-            task.payment_nonce,
-            &protocol_fee,
-        );
-
-        // Send payment to agent
-        if let Some(ref agent) = task.assigned_agent {
-            self.send().direct(
-                agent,
-                &task.payment_token,
-                task.payment_nonce,
-                &agent_payment,
-            );
-
-            // Emit event after successful transfer
-            task_approved_event(self, task_id, agent, &agent_payment, &task.payment_token, &protocol_fee);
-        }
-
-        self.non_reentrant_end();
     }
 }

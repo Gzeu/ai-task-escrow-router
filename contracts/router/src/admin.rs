@@ -7,6 +7,7 @@ use crate::storage::*;
 use crate::events::*;
 use crate::RouterEscrow;
 
+#[multiversx_sc::module]
 pub trait AdminEndpoints<M: ManagedTypeApi> {
     #[endpoint(setFeeBps)]
     fn set_fee_bps(&self, fee_bps: u16);
@@ -34,8 +35,6 @@ pub trait AdminEndpoints<M: ManagedTypeApi> {
         execution_delay: u64,
     );
 }
-
-pub struct AdminEndpoints<M: ManagedTypeApi> {}
 
 impl<M: ManagedTypeApi> AdminEndpoints<M> for RouterEscrow<M> {
     #[endpoint(setFeeBps)]
