@@ -315,8 +315,15 @@ jobs:
     
     - name: Deploy to staging
       run: |
-        echo "Deploying to staging environment..."
-        # Add deployment commands here
+        echo "🚀 Deploying to DevNet..."
+        cd contracts/router
+        mxpy contract deploy \
+          --bytecode output/router-escrow.wasm \
+          --proxy ${{ secrets.DEVNET_PROXY }} \
+          --chain D \
+          --pem ${{ secrets.DEVNET_PEM }} \
+          --gas-limit 100000000 \
+          --send
     
     - name: Run E2E tests
       run: |
@@ -326,8 +333,15 @@ jobs:
     - name: Deploy to production
       if: success()
       run: |
-        echo "Deploying to production..."
-        # Add production deployment commands here
+        echo "🚀 Deploying to MainNet..."
+        cd contracts/router
+        mxpy contract deploy \
+          --bytecode output/router-escrow.wasm \
+          --proxy ${{ secrets.MAINNET_PROXY }} \
+          --chain 1 \
+          --pem ${{ secrets.MAINNET_PEM }} \
+          --gas-limit 100000000 \
+          --send
 
   publish:
     name: Publish Packages
